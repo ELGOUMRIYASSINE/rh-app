@@ -1,0 +1,32 @@
+# Caddy: automatic HTTPS (Let's Encrypt) in front of YGHR.
+{
+	email {$ACME_EMAIL}
+}
+
+# Plain HTTP stays open ONLY for biometric clocks (ZKTeco ADMS cannot do HTTPS); everything else → HTTPS.
+http://{$DOMAIN} {
+	handle /iclock/* {
+		reverse_proxy web:3000
+	}
+	handle {
+		redir https://{host}{uri} permanent
+	}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	# Live updates (Socket.IO) on the same domain
+	handle /socket.io/* {
+		reverse_proxy realtime:3001
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	request_body {
+		max_size 20MB
+	}
+}

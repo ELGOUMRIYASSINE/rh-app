@@ -1,0 +1,9 @@
+**/node_modules
+**/.next
+.pgdata
+.uploads
+**/.uploads
+.env
+*.log
+playwright-report
+test-results
