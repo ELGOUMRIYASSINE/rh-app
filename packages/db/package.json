@@ -16,7 +16,8 @@
     "org:create": "tsx prisma/create-org.ts",
     "studio": "prisma studio",
     "typecheck": "tsc --noEmit",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "platform:admin": "tsx prisma/platform-admin.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

@@ -4,11 +4,11 @@ const nf1 = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 });
 
 /** 12316.33 → "12 316,33 DH" */
 export function dh(n: number | null | undefined, decimals = 2): string {
-  if (n === null || n === undefined || Number.isNaN(n)) return "—";
+  if (n === null || n === undefined || Number.isNaN(n)) return "";
   return `${decimals === 0 ? nf0.format(n) : nf2.format(n)} DH`;
 }
 export function num(n: number | null | undefined, decimals = 0): string {
-  if (n === null || n === undefined) return "—";
+  if (n === null || n === undefined) return "";
   return decimals === 1 ? nf1.format(n) : decimals === 2 ? nf2.format(n) : nf0.format(n);
 }
 /** minutes → "7h30" */
@@ -31,7 +31,7 @@ export function plural(n: number, one: string, many?: string) {
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 /** "2026-11-16" → "16/11/2026" */
 export function frDate(d: string | Date | null | undefined): string {
-  if (!d) return "—";
+  if (!d) return "";
   const date = typeof d === "string" ? new Date(`${d.slice(0, 10)}T00:00:00Z`) : d;
   return dateFmt.format(date);
 }
@@ -43,7 +43,7 @@ export function frDateTime(d: Date | string, timeZone: string): { date: string; 
   };
 }
 export function timeIn(d: Date | string | null | undefined, timeZone: string): string {
-  if (!d) return "—";
+  if (!d) return "";
   return new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone }).format(typeof d === "string" ? new Date(d) : d);
 }
 const shortDay = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });

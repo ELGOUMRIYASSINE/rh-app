@@ -89,15 +89,15 @@ const handlers: Record<string, (job: Job) => Promise<unknown>> = {
       const absent = days.filter((d) => d.status === "ABSENT").length;
       const missing = days.filter((d) => d.issues.includes("MISSING_OUT")).length;
       const rh = await prisma.membership.findMany({ where: { organizationId: o.id, role: "RH", active: true }, include: { user: true } });
-      const html = `<div style="font-family:Arial,sans-serif;color:#14201F"><h2 style="color:#0B2A2F">Résumé du ${y.split("-").reverse().join("/")} — ${o.name}</h2><p>${present} présent(s) · ${late} retard(s) · ${absent} absent(s) · ${missing} sortie(s) manquante(s)</p>${pending.length ? `<h3>Congés en attente</h3><ul>${pending.map((p) => `<li>${p.employee.firstName} ${p.employee.lastName} — ${LEAVE_TYPE_LABELS[p.type]} (${p.days} j)</li>`).join("")}</ul>` : "<p>Aucune demande de congé en attente.</p>"}<p><a href="${process.env.APP_URL ?? "http://localhost:3000"}/${o.slug}/rh">Ouvrir YGHR</a></p></div>`;
+      const html = `<div style="font-family:Arial,sans-serif;color:#14201F"><h2 style="color:#0B2422">Résumé du ${y.split("-").reverse().join("/")}, ${o.name}</h2><p>${present} présent(s) · ${late} retard(s) · ${absent} absent(s) · ${missing} sortie(s) manquante(s)</p>${pending.length ? `<h3>Congés en attente</h3><ul>${pending.map((p) => `<li>${p.employee.firstName} ${p.employee.lastName} : ${LEAVE_TYPE_LABELS[p.type]} (${p.days} j)</li>`).join("")}</ul>` : "<p>Aucune demande de congé en attente.</p>"}<p><a href="${process.env.APP_URL ?? "http://localhost:3000"}/${o.slug}/rh">Ouvrir YGHR</a></p></div>`;
       for (const m of rh) await mailer.sendMail({ from: process.env.MAIL_FROM ?? "YGHR <no-reply@yghr.ma>", to: m.user.email, subject: `YGHR · résumé du ${y.split("-").reverse().join("/")}`, html }).catch((e) => console.warn("[digest]", e.message));
     }
   },
 };
 
 const worker = new Worker(QUEUE, async (job) => handlers[job.name]?.(job), { connection, concurrency: 2 });
-worker.on("completed", (job, r) => console.log(`[worker] ${job.name} ✓`, r ?? ""));
-worker.on("failed", (job, err) => console.error(`[worker] ${job?.name} ✗`, err.message));
+worker.on("completed", (job, r) => console.log(`[worker] ${job.name} terminé`, r ?? ""));
+worker.on("failed", (job, err) => console.error(`[worker] ${job?.name} en échec`, err.message));
 
 // Repeatable schedules (idempotent: same job ids on every start).
 await queue.upsertJobScheduler("device-poll", { every: 60_000 }, { name: "device-poll" });
@@ -105,7 +105,7 @@ await queue.upsertJobScheduler("device-heartbeat", { every: 120_000 }, { name: "
 await queue.upsertJobScheduler("attendance-close", { pattern: "0 3 * * *", tz: TZ }, { name: "attendance-close" });
 await queue.upsertJobScheduler("anomaly-scan", { pattern: "0 6 * * *", tz: TZ }, { name: "anomaly-scan" });
 await queue.upsertJobScheduler("daily-digest", { pattern: "0 7 * * *", tz: TZ }, { name: "daily-digest" });
-console.log("[worker] prêt — files de tâches planifiées");
+console.log("[worker] prêt : tâches planifiées actives");
 
 const shutdown = async () => { await worker.close(); await queue.close(); await connection.quit(); process.exit(0); };
 process.on("SIGINT", shutdown);

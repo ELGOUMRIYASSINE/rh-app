@@ -13,7 +13,7 @@ export async function lockedDays(organizationId: string, from: string, to: strin
 
 export async function planningData(organizationId: string, from: string, to: string, opts: { employeeIds?: string[] | null; publishedOnly?: boolean } = {}) {
   const empWhere = { organizationId, status: "ACTIVE" as const, ...(opts.employeeIds ? { id: { in: opts.employeeIds } } : {}) };
-  const [org, employees, shiftTypes, assignments, leaves, unav, leads, locks, categories, services] = await Promise.all([
+  const [org, employees, shiftTypes, assignments, leaves, unav, leads, locks, categories, services, centres] = await Promise.all([
     prisma.organization.findUniqueOrThrow({ where: { id: organizationId } }),
     prisma.employee.findMany({ where: empWhere, orderBy: [{ lastName: "asc" }, { firstName: "asc" }], include: { staffCategory: { select: { name: true } }, service: { select: { name: true } } } }),
     prisma.shiftType.findMany({ where: { organizationId }, orderBy: { startTime: "asc" } }),
@@ -24,6 +24,7 @@ export async function planningData(organizationId: string, from: string, to: str
     lockedDays(organizationId, from, to, opts.employeeIds ?? undefined),
     prisma.staffCategory.findMany({ where: { organizationId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.service.findMany({ where: { organizationId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.centre.findMany({ where: { organizationId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
   const leadIds = new Set(leads.map((l) => l.employeeId));
   return {
@@ -34,7 +35,7 @@ export async function planningData(organizationId: string, from: string, to: str
     employees: employees.map((e) => {
       const weekly = e.weeklyHours?.toNumber() ?? 44;
       const rate = e.hourlyRate?.toNumber() ?? (e.monthlyBase ? e.monthlyBase.toNumber() / ((191 * weekly) / 44) : e.netHourlyRate ? grossHourlyFromNet(e.netHourlyRate.toNumber(), weekly, e.familyDependents) : 0);
-      return { id: e.id, firstName: e.firstName, lastName: e.lastName, category: e.staffCategory?.name ?? null, staffCategoryId: e.staffCategoryId, service: e.service?.name ?? null, serviceId: e.serviceId, weeklyHours: weekly, rate: Math.round(rate * 100) / 100, isLead: leadIds.has(e.id) };
+      return { id: e.id, firstName: e.firstName, lastName: e.lastName, category: e.staffCategory?.name ?? null, staffCategoryId: e.staffCategoryId, service: e.service?.name ?? null, serviceId: e.serviceId, centreId: e.centreId, weeklyHours: weekly, rate: Math.round(rate * 100) / 100, isLead: leadIds.has(e.id) };
     }),
     shiftTypes: shiftTypes.map((s) => ({ id: s.id, name: s.name, code: s.code, color: s.color, startTime: s.startTime, endTime: s.endTime, breakMinutes: s.breakMinutes, breakPaid: s.breakPaid, isNight: s.isNight, staffCategoryId: s.staffCategoryId, active: s.active })),
     assignments: assignments.map((a) => ({ id: a.id, employeeId: a.employeeId, date: fromDbDate(a.date), shiftTypeId: a.shiftTypeId, customStart: a.customStart, customEnd: a.customEnd, breakMinutes: a.breakMinutes, note: a.note, status: a.status, leaveRequestId: a.leaveRequestId })),
@@ -43,6 +44,7 @@ export async function planningData(organizationId: string, from: string, to: str
     locks,
     categories,
     services,
+    centres,
     overtimeRate: DEFAULT_FISCAL_RULES_MA.overtime.day,
   };
 }

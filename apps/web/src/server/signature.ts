@@ -50,7 +50,7 @@ export async function stampSignedPdf(o: {
   for (const page of pages) {
     // Vertical stamp in the right margin: never overlaps the document's own header/footer.
     const { width, height } = page.getSize();
-    page.drawText(`Signé électroniquement par ${o.signer} le ${when} — ${brand.name} · réf. ${o.requestId}`, { x: width - 8, y: 40, size: 6.5, font, color: rgb(0.08, 0.5, 0.55), rotate: degrees(90), maxWidth: height - 80 });
+    page.drawText(`Signé électroniquement par ${o.signer} le ${when}, ${brand.name}, réf. ${o.requestId}`, { x: width - 8, y: 40, size: 6.5, font, color: rgb(0.08, 0.5, 0.55), rotate: degrees(90), maxWidth: height - 80 });
   }
 
   // Handwritten signature block on the last page.

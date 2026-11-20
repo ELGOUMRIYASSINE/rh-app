@@ -37,7 +37,7 @@ export function CategoriesTab({ categories, services }: RulesData) {
                 <tr key={c.id} className={cn("hover:bg-surface-2/50", !c.active && "opacity-60")}>
                   <td className={cn(td, "font-medium")}>{c.name}</td>
                   <td className={cn(td, "font-mono text-xs")}>{c.code}</td>
-                  <td className={cn(td, "max-w-xs text-[13px] text-muted")}>{c.description ?? "—"}</td>
+                  <td className={cn(td, "max-w-xs text-[13px] text-muted")}>{c.description ?? ""}</td>
                   <td className={cn(td, "tabular")}>{c.count}</td>
                   <td className={td}><Toggle size="sm" checked={c.active} onChange={async (v) => { await api(`/api/staff-categories/${c.id}`, { method: "PATCH", body: { active: v } }); router.refresh(); }} /></td>
                   <td className={cn(td, "whitespace-nowrap text-right")}>

@@ -130,7 +130,7 @@ function PolicyPanel() {
     <Card className="mb-5">
       <button onClick={() => setOpen(!open)} className="flex w-full cursor-pointer items-center gap-3 px-5 py-4 text-left" aria-expanded={open}>
         <div className="grid size-9 place-items-center rounded-[10px] bg-brand-100 text-brand-700 dark:text-brand-400"><Settings2 className="size-[18px]" /></div>
-        <div className="flex-1"><div className="text-[15px] font-semibold">Politique de congés</div><div className="text-[13px] text-muted">Règles de calcul des soldes — paramétrable (France, Maroc…)</div></div>
+        <div className="flex-1"><div className="text-[15px] font-semibold">Politique de congés</div><div className="text-[13px] text-muted">Règles de calcul des soldes, adaptables à votre convention</div></div>
         <ChevronDown className={cn("size-5 text-muted transition-transform", open && "rotate-180")} />
       </button>
       {open && (

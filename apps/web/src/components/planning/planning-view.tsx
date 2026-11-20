@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle, CalendarPlus, ChevronLeft, ChevronRight, ClipboardPaste, Copy, Eraser, HelpCircle, Lock, Moon, Plus, Printer, Redo2, Search, Send, Undo2, X, Crown,
+  AlertTriangle, CalendarPlus, ChevronLeft, ChevronRight, ClipboardPaste, Copy, Eraser, HelpCircle, Lock, Moon, Plus, Printer, Redo2, Search, Send, Undo2, X, Crown, Clock3,
 } from "lucide-react";
 import {
   addDays, anchoredInterval, type Anomaly, eachDay, isoWeek, nightMinutes, shiftDurationMinutes, startOfIsoWeek, weekday,
@@ -51,15 +51,17 @@ export function PlanningView({ today, title = "Planning" }: { today: string; tit
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("all");
   const [serviceId, setServiceId] = useState("");
+  const [centreId, setCentreId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const employees = useMemo(() => (data?.employees ?? []).filter((e) => {
     if (search && !`${e.firstName} ${e.lastName}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (role === "lead" && !e.isLead) return false;
     if (role === "employee" && e.isLead) return false;
     if (serviceId && e.serviceId !== serviceId) return false;
+    if (centreId && e.centreId !== centreId) return false;
     if (categoryId && e.staffCategoryId !== categoryId) return false;
     return true;
-  }), [data, search, role, serviceId, categoryId]);
+  }), [data, search, role, serviceId, centreId, categoryId]);
 
   // ── indexes ──
   const stMap = useMemo(() => new Map((data?.shiftTypes ?? []).map((s) => [s.id, s])), [data]);
@@ -285,8 +287,8 @@ export function PlanningView({ today, title = "Planning" }: { today: string; tit
             <Button size="icon" variant="ghost" onClick={() => nav(1)} aria-label="Période suivante"><ChevronRight /></Button>
           </div>
           {view === "week" && <span className="rounded-full bg-accent-100 px-2.5 py-0.5 font-mono text-xs font-semibold text-[#9b5d0b] dark:text-accent-500">S{isoWeek(from).week}</span>}
-          <Button size="sm" variant="secondary" onClick={() => setAnchor(today)}>AUJOURD'HUI</Button>
-          <Segmented size="sm" value={view} onChange={(v) => { setView(v); setSelected(new Set()); }} options={[{ value: "week", label: "SEMAINE" }, { value: "month", label: "MOIS" }]} />
+          <Button size="sm" variant="secondary" onClick={() => setAnchor(today)}>Aujourd'hui</Button>
+          <Segmented size="sm" value={view} onChange={(v) => { setView(v); setSelected(new Set()); }} options={[{ value: "week", label: "Semaine" }, { value: "month", label: "Mois" }]} />
           <div className="ml-auto flex items-center gap-1">
             <Tooltip content="Annuler (Ctrl+Z)"><Button size="icon" variant="ghost" disabled={!undo.length || busy} onClick={doUndo} aria-label="Annuler"><Undo2 /></Button></Tooltip>
             <Tooltip content="Rétablir (Ctrl+Y)"><Button size="icon" variant="ghost" disabled={!redo.length || busy} onClick={doRedo} aria-label="Rétablir"><Redo2 /></Button></Tooltip>
@@ -303,10 +305,11 @@ export function PlanningView({ today, title = "Planning" }: { today: string; tit
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher…" className="h-9 pl-9" aria-label="Rechercher un salarié" />
           </div>
           <Select value={role} onChange={(e) => setRole(e.target.value)} className="h-9 w-auto" aria-label="Rôle"><option value="all">Tous rôles</option><option value="lead">Chef d'équipe</option><option value="employee">Salarié</option></Select>
+          {!!data?.centres.length && <Select value={centreId} onChange={(e) => setCentreId(e.target.value)} className="h-9 w-auto" aria-label="Centre"><option value="">Tous centres</option>{data.centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}
           <Select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="h-9 w-auto" aria-label="Service"><option value="">Tous services</option>{data?.services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select>
           <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="h-9 w-auto" aria-label="Catégorie"><option value="">Toutes catégories</option>{data?.categories.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select>
           <Tooltip content="Imprimer (PDF)"><Button size="icon" variant="secondary" onClick={() => download(`/api/planning/print?from=${from}&to=${to}`, `planning-${from}.pdf`)} aria-label="Imprimer"><Printer /></Button></Tooltip>
-          <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); if (!data?.employees.length) toast.error("Aucun employé disponible"); else setAddOpen(true); }}><Plus /> AJOUTER</Button>
+          <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); if (!data?.employees.length) toast.error("Aucun employé disponible"); else setAddOpen(true); }}><Plus /> Ajouter</Button>
 
         </div>
       </Card>
@@ -355,7 +358,7 @@ export function PlanningView({ today, title = "Planning" }: { today: string; tit
                           <Avatar name={`${e.firstName} ${e.lastName}`} size={compact ? 24 : 30} />
                           <div className="min-w-0">
                             <div className="truncate text-[13px] font-medium">{e.firstName} {e.lastName}{e.isLead && <Crown className="ml-1 inline size-3 text-accent-500" />}</div>
-                            {!compact && <div className="truncate text-[11px] text-muted">{e.category ?? "—"}</div>}
+                            {!compact && <div className="truncate text-[11px] text-muted">{e.category ?? ""}</div>}
                           </div>
                         </div>
                       </td>
@@ -395,7 +398,7 @@ export function PlanningView({ today, title = "Planning" }: { today: string; tit
                                 style={draft ? { border: `1.5px dashed ${color}`, color: "var(--text)", background: `color-mix(in srgb, ${color} 14%, transparent)` } : { background: color, color: readableText(color) }}
                                 title={`${t?.name ?? "Horaire personnalisé"}${draft ? " (brouillon)" : ""}`}
                               >
-                                <span className="inline-flex items-center gap-0.5 font-mono text-[11px] font-bold">{t?.code ?? "★"}{t?.isNight && !compact && <Moon className="size-2.5" />}</span>
+                                <span className="inline-flex items-center gap-0.5 font-mono text-[11px] font-bold">{t?.code ?? <Clock3 className="size-3" aria-label="Horaires personnalisés" />}{t?.isNight && !compact && <Moon className="size-2.5" />}</span>
                                 {!compact && <span className="font-mono text-[10px] tabular opacity-85">{a.customStart ?? t?.startTime}–{a.customEnd ?? t?.endTime}</span>}
                               </div>
                             ) : null}
@@ -507,7 +510,7 @@ function AddShiftSheet({ open, onOpenChange, data, from, to, onApply }: { open: 
         <Field label="Shift" required htmlFor="as-st">
           <Select id="as-st" value={shiftTypeId} onChange={(e) => setShiftTypeId(e.target.value)}>
             <option value="">Choisir…</option>
-            {data.shiftTypes.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.code} — {s.name} ({s.startTime}–{s.endTime})</option>)}
+            {data.shiftTypes.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name} ({s.code}, {s.startTime} à {s.endTime})</option>)}
             <option value="__custom">Horaires personnalisés…</option>
           </Select>
         </Field>

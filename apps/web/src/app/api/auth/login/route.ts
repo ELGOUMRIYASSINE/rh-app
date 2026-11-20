@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       await audit({ organizationId: user?.memberships[0]?.organizationId ?? null, userId: user?.id ?? null, action: "LOGIN_FAILED", entity: "USER", entityId: user?.id, details: { email: body.email }, ip, userAgent });
       return NextResponse.json({ error: "E-mail ou mot de passe incorrect." }, { status: 401 });
     }
-    if (!user.memberships.length) return NextResponse.json({ error: "Votre compte n'est rattaché à aucune organisation active." }, { status: 403 });
+    if (!user.memberships.length && !user.isPlatformAdmin) return NextResponse.json({ error: "Votre compte n'est rattaché à aucune organisation active." }, { status: 403 });
     if (user.totpEnabled) return NextResponse.json({ twoFactor: true, challenge: await signChallenge(user.id, body.persistent ?? true) });
     const to = await completeLogin(user.id, body.persistent ?? true, { ip, userAgent }, slugFromNext(body.next));
     return NextResponse.json({ redirect: safeNext(body.next, to) });

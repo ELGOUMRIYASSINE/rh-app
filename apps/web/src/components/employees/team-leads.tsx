@@ -115,7 +115,7 @@ function LeadModal({ lead, employees, leads, onClose, onSaved }: { lead: Lead | 
             <SectionLabel>Salarié ou responsable</SectionLabel>
             <Select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} aria-label="Salarié">
               <option value="">Rechercher une personne…</option>
-              {candidates.map((e) => <option key={e.id} value={e.id}>{e.lastName} {e.firstName}{e.position ? ` — ${e.position}` : ""}</option>)}
+              {candidates.map((e) => <option key={e.id} value={e.id}>{e.lastName} {e.firstName}{e.position ? ` (${e.position})` : ""}</option>)}
             </Select>
           </section>
         )}

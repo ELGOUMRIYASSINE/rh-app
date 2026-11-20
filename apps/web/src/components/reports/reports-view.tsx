@@ -9,8 +9,8 @@ import { api, download } from "@/lib/api";
 import { num } from "@/lib/format";
 
 const CONTRACT: Record<string, string> = { CDI: "CDI", CDD: "CDD", INTERIM: "Intérim", STAGE: "Stage" };
-const H = (m: number) => (m ? num(m / 60, 2) : "—");
-const DH = (n: number | null) => (n ? num(n, 2) : "—");
+const H = (m: number) => (m ? num(m / 60, 2) : "");
+const DH = (n: number | null) => (n ? num(n, 2) : "");
 
 function monthBounds(ym: string) {
   const [y, m] = ym.split("-").map(Number) as [number, number];
@@ -90,8 +90,8 @@ export function ReportsView({ today, canExport }: { today: string; canExport: bo
                 {data.rows.map((x) => (
                   <tr key={x.id} className="hover:bg-surface-2/50">
                     <td className="sticky left-0 z-10 border-b border-r border-border bg-surface px-3 py-2"><div className="font-medium">{x.name}</div><div className="text-[11px] text-muted">{x.service ?? ""}{x.isLead ? " · chef d'équipe" : ""}</div></td>
-                    <td className="border-b border-border px-3 py-2">{x.contractType ? CONTRACT[x.contractType] : "—"}</td>
-                    <td className="border-b border-border px-3 py-2 text-right tabular">{x.weeklyHours ? `${x.weeklyHours} h` : "—"}</td>
+                    <td className="border-b border-border px-3 py-2">{x.contractType ? CONTRACT[x.contractType] : ""}</td>
+                    <td className="border-b border-border px-3 py-2 text-right tabular">{x.weeklyHours ? `${x.weeklyHours} h` : ""}</td>
                     {showRates && <><td className="border-b border-border px-3 py-2 text-right font-mono tabular">{DH(x.hourlyRate)}</td><td className="border-b border-border px-3 py-2 text-right font-mono tabular">{DH(x.monthlyBase)}</td></>}
                     <td className="border-b border-border px-3 py-2 text-right font-mono tabular text-muted">{H(x.breakMinutes)}</td>
                     {x.weeks.map((w, i) => <td key={i} className="border-b border-border px-3 py-2 text-right font-mono tabular">{H(w)}</td>)}
@@ -99,7 +99,7 @@ export function ReportsView({ today, canExport }: { today: string; canExport: bo
                     <td className="border-b border-border px-3 py-2 text-right font-mono tabular">{H(x.normal)}</td>
                     <td className="border-b border-border px-3 py-2 text-right font-mono tabular">{H(x.night)}</td>
                     <td className={cn("border-b border-border px-3 py-2 text-right font-mono tabular", x.overtime > 0 && "text-[#9a6a00] dark:text-warning")}>{H(x.overtime)}</td>
-                    <td className={cn("border-b border-border px-3 py-2 text-right tabular", x.absentDays > 0 && "text-danger")}>{x.absentDays || "—"}</td>
+                    <td className={cn("border-b border-border px-3 py-2 text-right tabular", x.absentDays > 0 && "text-danger")}>{x.absentDays || ""}</td>
                     <td className="border-b border-border px-3 py-2 text-right font-mono tabular">{H(x.absentMinutes)}</td>
                     <td className="border-b border-border px-3 py-2 text-right font-mono tabular">{DH(x.primes)}</td>
                     <td className="border-b border-border px-3 py-2 text-right font-mono tabular">{DH(x.advances)}</td>

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Check } from "lucide-react";
 import { cn } from "./cn";
 
 /** EmptyState: icon in a soft circle, a title, one helpful sentence, a primary CTA. */
@@ -25,7 +25,7 @@ export function KpiCard({ icon, value, label, sub, progress, tone = "brand", hre
   }[tone];
   const L = LinkComponent ?? "a";
   return (
-    <div className="group relative flex flex-col rounded-[14px] border border-border bg-surface p-5 shadow-soft transition-shadow duration-200 hover:shadow-pop">
+    <div className="group relative flex flex-col rounded-[16px] border border-border bg-surface p-5 shadow-soft transition-shadow duration-200 hover:shadow-pop">
       <div className="flex items-start justify-between">
         <div className={cn("grid size-10 place-items-center rounded-[11px] [&_svg]:size-5 [&_svg]:stroke-[1.75]", toneMap[0])}>{icon}</div>
         {href && (
@@ -34,7 +34,7 @@ export function KpiCard({ icon, value, label, sub, progress, tone = "brand", hre
           </L>
         )}
       </div>
-      <div className="mt-4 font-display text-[30px] font-bold leading-none tabular">{value}</div>
+      <div className="mt-4 font-display text-[30px] font-semibold leading-none tracking-[-0.02em] tabular">{value}</div>
       <div className="mt-2 text-sm font-medium">{label}</div>
       {sub && <div className="mt-0.5 text-xs text-muted">{sub}</div>}
       {progress !== undefined && (
@@ -50,7 +50,7 @@ export function KpiCard({ icon, value, label, sub, progress, tone = "brand", hre
 export function StepCard({ n, title, children, done, action }: { n: number; title: React.ReactNode; children?: React.ReactNode; done?: boolean; action?: React.ReactNode }) {
   return (
     <div className={cn("flex gap-4 rounded-[14px] border p-4", done ? "border-success/30 bg-success-100/40" : "border-border bg-surface")}>
-      <div className={cn("grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold", done ? "bg-success text-white" : "bg-brand-100 text-brand-700 dark:text-brand-400")}>{done ? "✓" : n}</div>
+      <div className={cn("grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold", done ? "bg-success text-white" : "bg-brand-100 text-brand-700 dark:text-brand-400")}>{done ? <Check className="size-4" strokeWidth={2.5} /> : n}</div>
       <div className="min-w-0 flex-1">
         <div className={cn("text-sm font-semibold", done && "text-muted line-through decoration-1")}>{title}</div>
         {children && <div className="mt-1 text-[13px] leading-relaxed text-muted">{children}</div>}
@@ -64,7 +64,7 @@ export function PageHeader({ title, subtitle, actions, className }: { title: Rea
   return (
     <div className={cn("mb-6 flex flex-wrap items-end justify-between gap-4", className)}>
       <div className="min-w-0">
-        <h1 className="font-display text-[26px] font-bold leading-tight tracking-tight">{title}</h1>
+        <h1 className="font-display text-[26px] font-semibold leading-tight tracking-[-0.025em]">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -80,7 +80,7 @@ export function TableWrap({ children, className, maxHeight }: { children: React.
     </div>
   );
 }
-export const th = "sticky top-0 z-10 whitespace-nowrap border-b border-border bg-surface-2 px-4 py-2.5 text-left text-[11.5px] font-semibold uppercase tracking-[0.06em] text-muted";
+export const th = "sticky top-0 z-10 whitespace-nowrap border-b border-border bg-surface-2 px-4 py-2.5 text-left text-[11.5px] font-medium uppercase tracking-[0.05em] text-muted";
 export const td = "border-b border-border px-4 py-3 align-middle text-sm";
 
 export function StatTile({ label, value, tone = "neutral", active, onClick, icon }: { label: string; value: React.ReactNode; tone?: "neutral" | "success" | "danger" | "brand"; active?: boolean; onClick?: () => void; icon?: React.ReactNode }) {

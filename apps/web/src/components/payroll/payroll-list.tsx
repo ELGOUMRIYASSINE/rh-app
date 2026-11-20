@@ -47,7 +47,7 @@ export function PayrollList({ base, openNew, today }: { base: string; openNew?: 
   }
   return (
     <div>
-      <PageHeader title="Paie" subtitle="Périodes de paie — calcul, validation et verrouillage" actions={<><Button variant="secondary" onClick={() => q.refetch()}><RefreshCw /> Actualiser</Button><Button onClick={() => setCreating(true)}><Plus /> Nouvelle période</Button></>} />
+      <PageHeader title="Paie" subtitle="Calcul, validation et verrouillage des périodes de paie" actions={<><Button variant="secondary" onClick={() => q.refetch()}><RefreshCw /> Actualiser</Button><Button onClick={() => setCreating(true)}><Plus /> Nouvelle période</Button></>} />
       <p className="-mt-3 mb-5 text-sm text-muted">Gestion des bulletins de paie par période mensuelle, selon les règles marocaines (CNSS, AMO, IR).</p>
       {q.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[0, 1].map((i) => <Skeleton key={i} className="h-44" />)}</div> : !q.data?.items.length ? (
         <Card><EmptyState icon={<Wallet />} title="Aucune période de paie" action={<Button onClick={() => setCreating(true)}><Plus /> Créer une période</Button>}>Créez une période pour générer les bulletins selon les règles marocaines (CNSS, AMO, IR).</EmptyState></Card>

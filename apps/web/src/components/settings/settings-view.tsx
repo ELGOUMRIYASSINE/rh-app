@@ -70,8 +70,8 @@ export function SettingsView({ org, base, counts }: { org: Org; base: string; co
             </Field>
             <Field label="Devise" htmlFor="cur">
               <Select id="cur" value={o.currency} onChange={(e) => set("currency", e.target.value)}>
-                <option value="MAD">DH — Dirham marocain (MAD)</option>
-                <option value="EUR">EUR — Euro</option>
+                <option value="MAD">Dirham marocain (DH)</option>
+                <option value="EUR">Euro (EUR)</option>
               </Select>
             </Field>
             <Field label="Fuseau horaire" htmlFor="tz" help="Tous les calculs (présences, nuit, paie) se font dans ce fuseau.">

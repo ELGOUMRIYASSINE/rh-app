@@ -17,6 +17,11 @@ export interface SessionContext {
     slug: string;
     name: string;
     logoUrl: string | null;
+    status: "ACTIVE" | "TRIAL" | "SUSPENDED";
+    isDemo: boolean;
+    trialEndsAt: string | null;
+    /** Suspended, or trial over: the clinic can no longer use the app (the YGHR support still can). */
+    blocked: boolean;
     timezone: string;
     currency: string;
     nightStart: string;
@@ -63,7 +68,7 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
     userId: u.id,
     sessionId: claims.sid,
     user: { id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, avatarUrl: u.avatarUrl, totpEnabled: u.totpEnabled },
-    org: { id: o.id, slug: o.slug, name: o.name, logoUrl: o.logoUrl, timezone: o.timezone, currency: o.currency, nightStart: o.nightStart, nightEnd: o.nightEnd, weeklyRestDay: o.weeklyRestDay, planName: o.plan.name, features: o.plan.features as FeatureKey[] },
+    org: { id: o.id, slug: o.slug, name: o.name, logoUrl: o.logoUrl, status: o.status, isDemo: o.isDemo, trialEndsAt: o.trialEndsAt?.toISOString() ?? null, blocked: membership.role !== "SUPER_ADMIN" && (o.status === "SUSPENDED" || (o.status === "TRIAL" && !!o.trialEndsAt && o.trialEndsAt < new Date())), timezone: o.timezone, currency: o.currency, nightStart: o.nightStart, nightEnd: o.nightEnd, weeklyRestDay: o.weeklyRestDay, planName: o.plan.name, features: o.plan.features as FeatureKey[] },
     membershipId: membership.id,
     role: membership.role,
     employeeId: membership.employeeId,
@@ -86,6 +91,7 @@ export async function requirePage(slug: string, space: Space): Promise<SessionCo
     // Logged into another org: send to the right one if the user is a member of this slug.
     redirect(`/select-org?slug=${encodeURIComponent(slug)}`);
   }
+  if (s.org.blocked) redirect("/suspendu");
   const expected = spaceForRole(s.role);
   if (space === "rh" && expected !== "rh") redirect(`/${slug}/${expected}`);
   if (space === "chef" && s.role !== "CHEF") redirect(`/${slug}/${expected}`);

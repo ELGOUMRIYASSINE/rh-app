@@ -6,11 +6,12 @@ import { balancesFor } from "./leave";
 export async function loadProfile(orgId: string, id: string, tz: string) {
   const e = await prisma.employee.findFirst({
     where: { id, organizationId: orgId },
-    include: { service: true, staffCategory: true, teamLead: { select: { id: true, firstName: true, lastName: true } }, membership: { include: { user: { select: { passwordHash: true, lastLoginAt: true } } } } },
+    include: { service: true, staffCategory: true, centre: true, teamLead: { select: { id: true, firstName: true, lastName: true } }, membership: { include: { user: { select: { passwordHash: true, lastLoginAt: true } } } } },
   });
   if (!e) return null;
   const today = todayIn(tz);
-  const [assignments, attendance, leaves, documents, payslips, history, services, categories, leads, balances] = await Promise.all([
+  const [assignments, attendance, leaves, documents, payslips, history, services, categories, leads, balances, centres] = await Promise.all([
+
     prisma.shiftAssignment.findMany({ where: { employeeId: id, date: { gte: dbDate(addDays(today, -7)), lte: dbDate(addDays(today, 21)) } }, include: { shiftType: true }, orderBy: { date: "asc" } }),
     prisma.attendanceDay.findMany({ where: { employeeId: id, date: { gte: dbDate(addDays(today, -31)), lte: dbDate(today) } }, orderBy: { date: "desc" } }),
     prisma.leaveRequest.findMany({ where: { employeeId: id }, orderBy: { startDate: "desc" }, take: 20 }),
@@ -21,13 +22,14 @@ export async function loadProfile(orgId: string, id: string, tz: string) {
     prisma.staffCategory.findMany({ where: { organizationId: orgId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.employee.findMany({ where: { organizationId: orgId, status: "ACTIVE", membership: { role: "CHEF" } }, select: { id: true, firstName: true, lastName: true } }),
     balancesFor(orgId, id),
+    prisma.centre.findMany({ where: { organizationId: orgId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   const d = (x: Date | null) => (x ? fromDbDate(x) : null);
   return {
     today,
     employee: {
       id: e.id, firstName: e.firstName, lastName: e.lastName, email: e.email, phone: e.phone, matricule: e.matricule, position: e.position,
-      serviceId: e.serviceId, staffCategoryId: e.staffCategoryId, teamLeadId: e.teamLeadId, service: e.service?.name ?? null, category: e.staffCategory?.name ?? null,
+      serviceId: e.serviceId, staffCategoryId: e.staffCategoryId, teamLeadId: e.teamLeadId, centreId: e.centreId, centre: e.centre?.name ?? null, service: e.service?.name ?? null, category: e.staffCategory?.name ?? null,
       teamLead: e.teamLead ? `${e.teamLead.firstName} ${e.teamLead.lastName}` : null, contractType: e.contractType, contractReason: e.contractReason,
       weeklyHours: e.weeklyHours?.toNumber() ?? null, hourlyRate: e.hourlyRate?.toNumber() ?? null, netHourlyRate: e.netHourlyRate?.toNumber() ?? null, monthlyBase: e.monthlyBase?.toNumber() ?? null,
       birthDate: d(e.birthDate), hireDate: d(e.hireDate), cnssNumber: e.cnssNumber, cin: e.cin, familyDependents: e.familyDependents, status: e.status,
@@ -39,7 +41,7 @@ export async function loadProfile(orgId: string, id: string, tz: string) {
     documents: documents.map((x) => ({ id: x.id, title: x.title, category: x.category, createdAt: x.createdAt.toISOString(), fileUrl: x.fileUrl })),
     payslips: payslips.map((p) => ({ id: p.id, month: p.period.month, year: p.period.year, net: p.net.toNumber(), gross: p.gross.toNumber(), status: p.period.status })),
     history: history.map((h) => ({ id: h.id, action: h.action, entity: h.entity, details: h.details as Record<string, unknown> | null, createdAt: h.createdAt.toISOString(), user: h.user ? `${h.user.firstName} ${h.user.lastName}` : "Système" })),
-    services, categories, leads: leads.filter((l) => l.id !== id).map((l) => ({ id: l.id, name: `${l.firstName} ${l.lastName}` })),
+    services, categories, centres, leads: leads.filter((l) => l.id !== id).map((l) => ({ id: l.id, name: `${l.firstName} ${l.lastName}` })),
     balances,
   };
 }

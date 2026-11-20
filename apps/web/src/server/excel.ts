@@ -1,7 +1,7 @@
 import "server-only";
 import ExcelJS from "exceljs";
 
-export const BRAND = "FF0B2A2F";
+export const BRAND = "FF0B2422";
 
 /** Build a styled workbook from rows. Header row bold on petrol, frozen, auto widths. */
 export async function workbookBuffer(sheets: { name: string; columns: { header: string; key: string; width?: number; numFmt?: string }[]; rows: Record<string, unknown>[]; groups?: { label: string; span: number }[] }[]) {
@@ -18,9 +18,9 @@ export async function workbookBuffer(sheets: { name: string; columns: { header: 
         if (g.span > 1) ws.mergeCells(1, col, 1, col + g.span - 1);
         const cell = r.getCell(col);
         cell.value = g.label;
-        cell.font = { bold: true, color: { argb: "FF0F4C55" }, size: 9 };
+        cell.font = { bold: true, color: { argb: "FF0B5E56" }, size: 9 };
         cell.alignment = { horizontal: "center" };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE3F4F5" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7F3F0" } };
         col += g.span;
       }
       headerRow = 2;

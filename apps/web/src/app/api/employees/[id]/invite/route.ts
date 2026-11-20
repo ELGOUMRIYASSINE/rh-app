@@ -10,6 +10,7 @@ export const POST = route({ feature: "employees", permission: "team.add" }, asyn
   if (!canDo(s, "team.add", params.id) && s.role !== "RH") fail(403, "Accès refusé.");
   const e = await prisma.employee.findFirst({ where: { id: params.id, organizationId: s.org.id }, include: { membership: { include: { user: true } } } });
   if (!e) fail(404, "Salarié introuvable.");
+  if (e!.email.endsWith(".invalid")) fail(400, "Complétez d'abord l'e-mail de ce salarié dans sa fiche (il a été créé depuis la pointeuse).");
   const user = e!.membership?.user;
   if (user?.passwordHash) fail(400, "Ce salarié a déjà activé son compte. Il peut utiliser « Mot de passe oublié » si besoin.");
   if (!user) await provisionAccess({ organizationId: s.org.id, orgName: s.org.name, employeeId: e!.id, email: e!.email, firstName: e!.firstName, lastName: e!.lastName });

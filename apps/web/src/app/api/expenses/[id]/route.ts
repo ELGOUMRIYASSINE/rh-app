@@ -15,7 +15,7 @@ export const PATCH = route({ feature: "expenses", allowEmployee: true, body: z.o
   }
   const status = body.action === "approve" ? "APPROVED" : body.action === "reject" ? "REJECTED" : "CANCELLED";
   await prisma.expenseReport.update({ where: { id: x!.id }, data: { status, decidedById: s.userId, decidedAt: new Date() } });
-  if (x!.employee.membership && body.action !== "cancel") await notify(s.org.id, [x!.employee.membership.userId], { type: "expense", title: status === "APPROVED" ? "Note de frais approuvée ✅" : "Note de frais refusée", body: `${x!.category} · ${x!.amount.toNumber()} DH${body.note ? ` — ${body.note}` : ""}${status === "APPROVED" && x!.reimbursement === "PAYROLL" ? " · remboursée sur la prochaine paie" : ""}`, link: `/${s.org.slug}/salarie/notes-de-frais` });
+  if (x!.employee.membership && body.action !== "cancel") await notify(s.org.id, [x!.employee.membership.userId], { type: "expense", title: status === "APPROVED" ? "Note de frais approuvée" : "Note de frais refusée", body: `${x!.category} · ${x!.amount.toNumber()} DH${body.note ? `. ${body.note}` : ""}${status === "APPROVED" && x!.reimbursement === "PAYROLL" ? " · remboursée sur la prochaine paie" : ""}`, link: `/${s.org.slug}/salarie/notes-de-frais` });
   await log(status === "APPROVED" ? "APPROVE" : status === "REJECTED" ? "REJECT" : "UPDATE", "EXPENSE_REPORT", x!.id, { status, note: body.note });
   return { ok: true };
 });

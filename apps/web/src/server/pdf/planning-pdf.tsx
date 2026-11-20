@@ -7,8 +7,8 @@ import type { PlanningData } from "../planning";
 const DAYS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const s = StyleSheet.create({
   page: { padding: 22, fontSize: 7.5, fontFamily: "Helvetica", color: "#14201F" },
-  head: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10, borderBottom: "2pt solid #0B2A2F", paddingBottom: 6 },
-  brand: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#0B2A2F" },
+  head: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10, borderBottom: "2pt solid #0B2422", paddingBottom: 6 },
+  brand: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#0B2422" },
   row: { flexDirection: "row", borderBottom: "0.5pt solid #E6E8E3", minHeight: 18, alignItems: "stretch" },
   name: { width: 120, padding: 3, justifyContent: "center" },
   cell: { flex: 1, padding: 2, borderLeft: "0.5pt solid #E6E8E3", justifyContent: "center", alignItems: "center" },
@@ -22,7 +22,7 @@ export async function planningPdf(b: Branding, data: PlanningData) {
   const days = eachDay(data.from, data.to);
   const st = new Map(data.shiftTypes.map((x) => [x.id, x]));
   const doc = (
-    <Document title={`Planning ${data.from} — ${data.to}`} author="YGHR">
+    <Document title={`Planning du ${data.from} au ${data.to}`} author="YGHR">
       <Page size="A4" orientation="landscape" style={s.page}>
         <View style={s.head} fixed>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

@@ -9,79 +9,81 @@
 
 /* ───────── YGHR tokens (section 3.2) ───────── */
 :root {
-  --brand-900: #0b2a2f;
-  --brand-800: #0d3a40;
-  --brand-700: #0f4c55;
-  --brand-500: #14808c;
-  --brand-400: #1e9aa7;
-  --brand-100: #e3f4f5;
-  --accent-500: #f2a541;
-  --accent-100: #fdf1de;
-  --success: #1f9d6b;
-  --success-100: #e2f5ed;
-  --warning: #e8a317;
-  --warning-100: #fcf3dc;
-  --danger: #d64545;
-  --danger-100: #fbe6e6;
-  --info: #3b82f6;
-  --info-100: #e3edfe;
-  --bg: #f7f8f6;
+  /* Brand: one calm, trustworthy clinical teal; amber only for highlights. */
+  --brand-900: #0b2422;
+  --brand-800: #0e3833;
+  --brand-700: #0b5e56;
+  --brand-500: #0f766e;
+  --brand-400: #14958a;
+  --brand-100: #e7f3f0;
+  --accent-500: #e9a23b;
+  --accent-100: #fdf3df;
+  --success: #16865a;
+  --success-100: #e3f4ec;
+  --warning: #d08a0e;
+  --warning-100: #fcf1d9;
+  --danger: #d14343;
+  --danger-100: #fbe7e7;
+  --info: #2f6fdb;
+  --info-100: #e6eefc;
+  /* Neutrals: airy, near-white, thin borders (inspired by modern SaaS galleries). */
+  --bg: #f7f8f7;
   --surface: #ffffff;
-  --surface-2: #f2f4f1;
-  --border: #e6e8e3;
-  --text: #14201f;
-  --muted: #66736f;
+  --surface-2: #f2f4f3;
+  --border: #e4e7e5;
+  --text: #121a18;
+  --muted: #67716d;
   --ring: var(--brand-500);
   /* chart series (validated: lightness, chroma, CVD, contrast) */
   --chart-1: #008c99;
   --chart-2: #cc7a00;
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(11 42 47 / 0.06);
-  --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.06), 0 16px 40px rgb(11 42 47 / 0.14);
+  --shadow-soft: 0 1px 2px rgb(16 26 24 / 0.04), 0 1px 1px rgb(16 26 24 / 0.02);
+  --shadow-pop: 0 2px 6px rgb(16 26 24 / 0.05), 0 12px 32px rgb(16 26 24 / 0.10);
   color-scheme: light;
 }
 
 .dark {
-  --brand-500: #2bb3c0;
-  --brand-400: #3fc3cf;
-  --brand-100: #10363b;
-  --accent-500: #f6b85f;
-  --accent-100: #3a2c14;
-  --success-100: #11352a;
-  --warning-100: #3a2e10;
-  --danger-100: #3d1c1c;
-  --info-100: #142a4a;
-  --bg: #0e1415;
-  --surface: #151d1f;
-  --surface-2: #1b2527;
-  --border: #243033;
-  --text: #e7eeec;
-  --muted: #8fa09b;
+  --brand-500: #34b3a4;
+  --brand-400: #4cc5b6;
+  --brand-100: #12302c;
+  --accent-500: #f1b35a;
+  --accent-100: #352914;
+  --success-100: #10301f;
+  --warning-100: #36290c;
+  --danger-100: #3b1b1b;
+  --info-100: #14264a;
+  --bg: #0b100f;
+  --surface: #111816;
+  --surface-2: #172120;
+  --border: #22302c;
+  --text: #e6edea;
+  --muted: #8d9a96;
   --chart-1: #1fa3b0;
   --chart-2: #cc7f14;
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.35);
   --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.45);
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --brand-500: #2bb3c0;
-    --brand-400: #3fc3cf;
-    --brand-100: #10363b;
-    --accent-500: #f6b85f;
-    --accent-100: #3a2c14;
-    --success-100: #11352a;
-    --warning-100: #3a2e10;
-    --danger-100: #3d1c1c;
-    --info-100: #142a4a;
-    --bg: #0e1415;
-    --surface: #151d1f;
-    --surface-2: #1b2527;
-    --border: #243033;
-    --text: #e7eeec;
-    --muted: #8fa09b;
+    --brand-500: #34b3a4;
+    --brand-400: #4cc5b6;
+    --brand-100: #12302c;
+    --accent-500: #f1b35a;
+    --accent-100: #352914;
+    --success-100: #10301f;
+    --warning-100: #36290c;
+    --danger-100: #3b1b1b;
+    --info-100: #14264a;
+    --bg: #0b100f;
+    --surface: #111816;
+    --surface-2: #172120;
+    --border: #22302c;
+    --text: #e6edea;
+    --muted: #8d9a96;
     --chart-1: #1fa3b0;
     --chart-2: #cc7f14;
-    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
+    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.35);
     --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.45);
     color-scheme: dark;
   }
@@ -111,11 +113,11 @@
   --color-text: var(--text);
   --color-muted: var(--muted);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
-  --radius-card: 14px;
+  --radius-card: 16px;
   --radius-ctl: 10px;
   --shadow-soft: var(--shadow-soft);
   --shadow-pop: var(--shadow-pop);
@@ -150,13 +152,14 @@
     color: var(--text);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    font-feature-settings: "cv11", "ss01";
   }
-  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
+  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
   * { border-color: var(--border); }
   :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 6px; }
   ::selection { background: color-mix(in srgb, var(--brand-500) 25%, transparent); }
   input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+  /* Native dropdown lists follow the theme (some browsers keep a white popup otherwise). */
+  select option, select optgroup { background-color: var(--surface); color: var(--text); }
 }
 
 @layer utilities {

@@ -25,11 +25,11 @@ export function MyHome({ data, base, firstName }: { data: MyOverview; base: stri
   const working = st && (st.status === "PRESENT" || st.status === "LATE");
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <section className="relative overflow-hidden rounded-[18px] bg-brand-900 p-6 text-white">
-        <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-brand-500/30 blur-3xl" />
-        <p className="text-sm text-white/60">{formatLongDateFr(data.today)}</p>
-        <h1 className="mt-1 font-display text-[28px] font-bold">Bonjour {firstName} 👋</h1>
-        <p className="mt-2 text-[15px] text-white/80">
+      <section className="relative overflow-hidden rounded-[20px] border border-border bg-surface p-6 shadow-soft">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_120%_at_100%_0%,color-mix(in_srgb,var(--brand-500)_13%,transparent),transparent_70%),radial-gradient(40%_80%_at_0%_100%,color-mix(in_srgb,var(--accent-500)_9%,transparent),transparent_70%)]" />
+        <p className="relative text-sm text-muted first-letter:uppercase">{formatLongDateFr(data.today)}</p>
+        <h1 className="relative mt-1 font-display text-[28px] font-semibold tracking-[-0.03em]">Bonjour {firstName}</h1>
+        <p className="relative mt-2 text-[15px] text-muted">
           {working ? <>Vous êtes pointé(e) depuis <b>{timeIn(st!.openSince, data.timezone)}</b>{st!.lateMinutes ? ` (retard de ${st!.lateMinutes} min)` : ""}.</> : st?.status === "LEAVE" ? "Vous êtes en congé aujourd'hui. Bon repos !" : next && next.date === data.today ? <>Votre shift commence à <b>{next.start}</b>.</> : "Pas de shift prévu aujourd'hui."}
         </p>
       </section>
@@ -98,7 +98,7 @@ export function MyHome({ data, base, firstName }: { data: MyOverview; base: stri
               {h.status === "ABSENT" ? <StatusPill tone={h.justified ? "info" : "danger"}>{h.justified ? "Absence justifiée" : "Absence"}</StatusPill> : <StatusPill tone="warning">Retard {h.late} min</StatusPill>}
             </li>
           ))}
-          {!data.history.length && <li className="px-5 py-6 text-center text-sm text-muted">Aucune absence ni retard. Bravo ! 👏</li>}
+          {!data.history.length && <li className="px-5 py-6 text-center text-sm text-muted">Aucune absence ni retard ce mois-ci.</li>}
         </ul>
       </Card>
     </div>

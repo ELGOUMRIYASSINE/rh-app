@@ -167,8 +167,8 @@ model Plan {
 }
 
 model Organization {
-  id                      String   @id @default(cuid())
-  slug                    String   @unique
+  id                      String    @id @default(cuid())
+  slug                    String    @unique
   name                    String
   contactEmail            String?
   accountingEmail         String?
@@ -178,21 +178,26 @@ model Organization {
   ice                     String?
   cnssEmployerNumber      String?
   logoUrl                 String?
-  language                String   @default("fr")
-  currency                String   @default("MAD")
-  timezone                String   @default("Africa/Casablanca")
-  nightStart              String   @default("21:00")
-  nightEnd                String   @default("06:00")
+  language                String    @default("fr")
+  currency                String    @default("MAD")
+  timezone                String    @default("Africa/Casablanca")
+  nightStart              String    @default("21:00")
+  nightEnd                String    @default("06:00")
   weeklyRestDay           Int?
-  useServerTimeForPunches Boolean  @default(false)
-  require2FAForAdmins     Boolean  @default(false)
-  dailyEmails             Boolean  @default(false)
-  persistentSessions      Boolean  @default(true)
+  useServerTimeForPunches Boolean   @default(false)
+  require2FAForAdmins     Boolean   @default(false)
+  dailyEmails             Boolean   @default(false)
+  persistentSessions      Boolean   @default(true)
   tabletRules             Json?
+  /// Platform console (app owner): lifecycle of the customer account
+  status                  OrgStatus @default(ACTIVE)
+  isDemo                  Boolean   @default(false)
+  trialEndsAt             DateTime?
+  internalNote            String?
   planId                  String
-  plan                    Plan     @relation(fields: [planId], references: [id])
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  plan                    Plan      @relation(fields: [planId], references: [id])
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   memberships        Membership[]
   employees          Employee[]
@@ -225,30 +230,108 @@ model Organization {
   auditLogs          AuditLog[]
   availabilities     Availability[]
   tokens             AuthToken[]
+  supportTickets     SupportTicket[]
+  errorEvents        ErrorEvent[]
+}
+
+enum OrgStatus {
+  ACTIVE
+  TRIAL
+  SUSPENDED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CLINIC
+  RESOLVED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+/// A support request from a clinic to the app owner.
+model SupportTicket {
+  id               String           @id @default(cuid())
+  organizationId   String
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdById      String?
+  createdBy        User?            @relation("TicketAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  subject          String
+  category         String           @default("question")
+  priority         TicketPriority   @default(NORMAL)
+  status           TicketStatus     @default(OPEN)
+  /// Last message author side, to show "waiting for reply" badges
+  lastFromPlatform Boolean          @default(false)
+  messages         SupportMessage[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  resolvedAt       DateTime?
+
+  @@index([organizationId, status])
+  @@index([status, updatedAt])
+}
+
+model SupportMessage {
+  id           String        @id @default(cuid())
+  ticketId     String
+  ticket       SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId     String?
+  author       User?         @relation("TicketMessageAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  fromPlatform Boolean       @default(false)
+  body         String
+  createdAt    DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+/// Unexpected server errors, so the app owner can see problems before clinics report them.
+model ErrorEvent {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  userId         String?
+  method         String
+  path           String
+  message        String
+  stack          String?
+  resolved       Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+
+  @@index([createdAt])
+  @@index([organizationId, createdAt])
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String?
-  totpSecret   String?
-  totpEnabled  Boolean   @default(false)
-  firstName    String
-  lastName     String
-  phone        String?
-  avatarUrl    String?
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String?
+  totpSecret      String?
+  totpEnabled     Boolean   @default(false)
+  firstName       String
+  lastName        String
+  phone           String?
+  avatarUrl       String?
+  lastLoginAt     DateTime?
+  /// App owner / support team: access to the platform console (/admin)
+  isPlatformAdmin Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  memberships   Membership[]
-  sessions      Session[]
-  tokens        AuthToken[]
-  notifications Notification[]
-  auditLogs     AuditLog[]
-  messages      Message[]
-  participants  ConversationParticipant[]
-  pushSubs      PushSubscription[]
+  memberships    Membership[]
+  sessions       Session[]
+  tokens         AuthToken[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+  messages       Message[]
+  participants   ConversationParticipant[]
+  pushSubs       PushSubscription[]
+  tickets        SupportTicket[]           @relation("TicketAuthor")
+  ticketMessages SupportMessage[]          @relation("TicketMessageAuthor")
 }
 
 model Membership {
@@ -322,43 +405,43 @@ model Centre {
 }
 
 model Service {
-  id             String         @id @default(cuid())
-  organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name           String
-  active         Boolean        @default(true)
-  centreId       String?
-  centre         Centre?        @relation(fields: [centreId], references: [id], onDelete: SetNull)
-  employees      Employee[]
-  coverageRules  CoverageRule[]
+  id                  String               @id @default(cuid())
+  organizationId      String
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                String
+  active              Boolean              @default(true)
+  centreId            String?
+  centre              Centre?              @relation(fields: [centreId], references: [id], onDelete: SetNull)
+  employees           Employee[]
+  coverageRules       CoverageRule[]
   rotationAssignments RotationAssignment[]
-  createdAt      DateTime       @default(now())
+  createdAt           DateTime             @default(now())
 
   @@unique([organizationId, name])
 }
 
 model StaffCategory {
-  id             String         @id @default(cuid())
-  organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name           String
-  code           String
-  description    String?
-  active         Boolean        @default(true)
-  employees      Employee[]
-  shiftTypes     ShiftType[]
-  workRules      WorkRule[]
-  coverageRules  CoverageRule[]
+  id                  String               @id @default(cuid())
+  organizationId      String
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                String
+  code                String
+  description         String?
+  active              Boolean              @default(true)
+  employees           Employee[]
+  shiftTypes          ShiftType[]
+  workRules           WorkRule[]
+  coverageRules       CoverageRule[]
   rotationAssignments RotationAssignment[]
-  createdAt      DateTime       @default(now())
+  createdAt           DateTime             @default(now())
 
   @@unique([organizationId, code])
 }
 
 model Employee {
-  id               String          @id @default(cuid())
+  id               String         @id @default(cuid())
   organizationId   String
-  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   matricule        String?
   firstName        String
   lastName         String
@@ -366,46 +449,46 @@ model Employee {
   phone            String?
   position         String?
   serviceId        String?
-  service          Service?        @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  service          Service?       @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   staffCategoryId  String?
-  staffCategory    StaffCategory?  @relation(fields: [staffCategoryId], references: [id], onDelete: SetNull)
+  staffCategory    StaffCategory? @relation(fields: [staffCategoryId], references: [id], onDelete: SetNull)
   centreId         String?
-  centre           Centre?         @relation(fields: [centreId], references: [id], onDelete: SetNull)
+  centre           Centre?        @relation(fields: [centreId], references: [id], onDelete: SetNull)
   teamLeadId       String?
-  teamLead         Employee?       @relation("TeamLead", fields: [teamLeadId], references: [id], onDelete: SetNull)
-  subordinates     Employee[]      @relation("TeamLead")
+  teamLead         Employee?      @relation("TeamLead", fields: [teamLeadId], references: [id], onDelete: SetNull)
+  subordinates     Employee[]     @relation("TeamLead")
   contractType     ContractType?
   contractReason   String?
-  weeklyHours      Decimal?        @db.Decimal(5, 2)
-  hourlyRate       Decimal?        @db.Decimal(10, 2)
-  netHourlyRate    Decimal?        @db.Decimal(10, 2)
-  monthlyBase      Decimal?        @db.Decimal(12, 2)
-  birthDate        DateTime?       @db.Date
-  hireDate         DateTime?       @db.Date
+  weeklyHours      Decimal?       @db.Decimal(5, 2)
+  hourlyRate       Decimal?       @db.Decimal(10, 2)
+  netHourlyRate    Decimal?       @db.Decimal(10, 2)
+  monthlyBase      Decimal?       @db.Decimal(12, 2)
+  birthDate        DateTime?      @db.Date
+  hireDate         DateTime?      @db.Date
   cnssNumber       String?
   cin              String?
-  familyDependents Int             @default(0)
-  status           EmployeeStatus  @default(ACTIVE)
+  familyDependents Int            @default(0)
+  status           EmployeeStatus @default(ACTIVE)
   kioskPin         String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
-  membership       Membership?
-  assignments      ShiftAssignment[]
-  deviceUserMaps   DeviceUserMap[]
-  punches          Punch[]
-  attendanceDays   AttendanceDay[]
-  leaveRequests    LeaveRequest[]
-  leaveBalances    LeaveBalance[]
-  payslips         Payslip[]
-  payElements      PayElement[]
-  advanceRequests  AdvanceRequest[]
-  expenseReports   ExpenseReport[]
-  signatureRequests SignatureRequest[]
-  documents        Document[]
-  availabilities   Availability[]
+  membership          Membership?
+  assignments         ShiftAssignment[]
+  deviceUserMaps      DeviceUserMap[]
+  punches             Punch[]
+  attendanceDays      AttendanceDay[]
+  leaveRequests       LeaveRequest[]
+  leaveBalances       LeaveBalance[]
+  payslips            Payslip[]
+  payElements         PayElement[]
+  advanceRequests     AdvanceRequest[]
+  expenseReports      ExpenseReport[]
+  signatureRequests   SignatureRequest[]
+  documents           Document[]
+  availabilities      Availability[]
   rotationAssignments RotationAssignment[]
-  planningExceptions PlanningException[]
+  planningExceptions  PlanningException[]
 
   @@unique([organizationId, email])
   @@index([organizationId, status])
@@ -414,23 +497,23 @@ model Employee {
 // ───────────────────────── Planning & rules ─────────────────────────
 
 model ShiftType {
-  id              String         @id @default(cuid())
+  id              String            @id @default(cuid())
   organizationId  String
-  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name            String
   code            String
   color           String
   startTime       String
   endTime         String
-  breakMinutes    Int            @default(0)
-  breakPaid       Boolean        @default(false)
-  isNight         Boolean        @default(false)
+  breakMinutes    Int               @default(0)
+  breakPaid       Boolean           @default(false)
+  isNight         Boolean           @default(false)
   staffCategoryId String?
-  staffCategory   StaffCategory? @relation(fields: [staffCategoryId], references: [id], onDelete: SetNull)
-  active          Boolean        @default(true)
+  staffCategory   StaffCategory?    @relation(fields: [staffCategoryId], references: [id], onDelete: SetNull)
+  active          Boolean           @default(true)
   assignments     ShiftAssignment[]
   coverageRules   CoverageRule[]
-  createdAt       DateTime       @default(now())
+  createdAt       DateTime          @default(now())
 
   @@unique([organizationId, code])
 }
@@ -573,24 +656,77 @@ model Availability {
 // ───────────────────────── Devices & attendance ─────────────────────────
 
 model Device {
-  id             String          @id @default(cuid())
+  id                  String          @id @default(cuid())
+  organizationId      String
+  organization        Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                String
+  mode                DeviceMode      @default(LAN)
+  ip                  String?
+  port                Int             @default(4370)
+  commPassword        String?
+  serialNumber        String?         @unique
+  model               String?
+  firmware            String?
+  userCount           Int?
+  /// Read from the device (LAN: free sizes; ADMS: INFO)
+  fingerprintCount    Int?
+  faceCount           Int?
+  logCount            Int?
+  userCapacity        Int?
+  fingerprintCapacity Int?
+  logCapacity         Int?
+  macAddress          String?
+  platform            String?
+  reportedIp          String?
+  clockDriftSeconds   Int?
+  usersSyncedAt       DateTime?
+  lastError           String?
+  lastSeenAt          DateTime?
+  lastSyncAt          DateTime?
+  status              DeviceStatus    @default(UNKNOWN)
+  punches             Punch[]
+  userMaps            DeviceUserMap[]
+  users               DeviceUser[]
+  commands            DeviceCommand[]
+  createdAt           DateTime        @default(now())
+}
+
+/// A user record stored in the clock itself (PIN, name, credentials enrolled).
+model DeviceUser {
+  id             String   @id @default(cuid())
   organizationId String
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name           String
-  mode           DeviceMode      @default(LAN)
-  ip             String?
-  port           Int             @default(4370)
-  commPassword   String?
-  serialNumber   String?         @unique
-  model          String?
-  firmware       String?
-  userCount      Int?
-  lastSeenAt     DateTime?
-  lastSyncAt     DateTime?
-  status         DeviceStatus    @default(UNKNOWN)
-  punches        Punch[]
-  userMaps       DeviceUserMap[]
-  createdAt      DateTime        @default(now())
+  deviceId       String
+  device         Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceUserId   String
+  name           String?
+  /// 0 = user, 14 = administrator (ZKTeco privilege)
+  role           Int      @default(0)
+  cardNumber     String?
+  hasPassword    Boolean  @default(false)
+  fingerprints   Int      @default(0)
+  hasFace        Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([deviceId, deviceUserId])
+  @@index([organizationId, deviceUserId])
+}
+
+/// Command queued for an ADMS device, delivered on its next /iclock/getrequest poll.
+model DeviceCommand {
+  id        String    @id @default(cuid())
+  seq       Int       @unique @default(autoincrement())
+  deviceId  String
+  device    Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  command   String
+  label     String
+  status    String    @default("PENDING")
+  result    String?
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+  doneAt    DateTime?
+
+  @@index([deviceId, status])
 }
 
 model DeviceUserMap {
@@ -621,6 +757,9 @@ model Punch {
   source         PunchSource  @default(DEVICE)
   verifyMode     String?
   direction      String?
+  /// Punch state from the device: Entrée, Sortie, Début de pause, Fin de pause, Entrée/Sortie heures sup.
+  state          String?
+  workCode       String?
   reason         String?
   deletedAt      DateTime?
   createdById    String?
@@ -632,28 +771,28 @@ model Punch {
 }
 
 model AttendanceDay {
-  id              String           @id @default(cuid())
-  organizationId  String
-  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  employeeId      String
-  employee        Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  date            DateTime         @db.Date
-  firstIn         DateTime?
-  lastOut         DateTime?
-  plannedMinutes  Int              @default(0)
-  workedMinutes   Int              @default(0)
-  normalMinutes   Int              @default(0)
-  nightMinutes    Int              @default(0)
-  overtimeMinutes Int              @default(0)
-  lateMinutes     Int              @default(0)
-  earlyLeaveMinutes Int            @default(0)
-  status          AttendanceStatus @default(OFF)
-  issues          String[]
-  justified       Boolean?
-  validatedById   String?
-  validatedAt     DateTime?
-  corrections     Json?
-  updatedAt       DateTime         @updatedAt
+  id                String           @id @default(cuid())
+  organizationId    String
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employeeId        String
+  employee          Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date              DateTime         @db.Date
+  firstIn           DateTime?
+  lastOut           DateTime?
+  plannedMinutes    Int              @default(0)
+  workedMinutes     Int              @default(0)
+  normalMinutes     Int              @default(0)
+  nightMinutes      Int              @default(0)
+  overtimeMinutes   Int              @default(0)
+  lateMinutes       Int              @default(0)
+  earlyLeaveMinutes Int              @default(0)
+  status            AttendanceStatus @default(OFF)
+  issues            String[]
+  justified         Boolean?
+  validatedById     String?
+  validatedAt       DateTime?
+  corrections       Json?
+  updatedAt         DateTime         @updatedAt
 
   @@unique([employeeId, date])
   @@index([organizationId, date])
@@ -678,25 +817,25 @@ model LeavePolicy {
 }
 
 model LeaveRequest {
-  id             String          @id @default(cuid())
+  id             String            @id @default(cuid())
   organizationId String
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   employeeId     String
-  employee       Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee       Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   type           LeaveType
-  startDate      DateTime        @db.Date
-  endDate        DateTime        @db.Date
-  halfDayStart   Boolean         @default(false)
-  halfDayEnd     Boolean         @default(false)
-  days           Decimal         @db.Decimal(5, 2)
+  startDate      DateTime          @db.Date
+  endDate        DateTime          @db.Date
+  halfDayStart   Boolean           @default(false)
+  halfDayEnd     Boolean           @default(false)
+  days           Decimal           @db.Decimal(5, 2)
   comment        String?
   attachmentUrl  String?
-  status         RequestStatus   @default(PENDING)
+  status         RequestStatus     @default(PENDING)
   decidedById    String?
   decidedAt      DateTime?
   decisionNote   String?
   createdById    String
-  createdAt      DateTime        @default(now())
+  createdAt      DateTime          @default(now())
   assignments    ShiftAssignment[]
 
   @@index([organizationId, status])

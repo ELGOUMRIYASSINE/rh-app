@@ -54,7 +54,7 @@ export function RequestsModule({ mode, selfEmployeeId, today, manage }: { mode: 
                   return (
                     <tr key={r.id} className="hover:bg-surface-2/50">
                       {manage && <td className={td}><div className="flex items-center gap-3"><Avatar name={`${r.employee.firstName} ${r.employee.lastName}`} size={30} /><div><div className="font-medium">{r.employee.firstName} {r.employee.lastName}</div><div className="text-xs text-muted">{r.employee.position ?? ""}</div></div></div></td>}
-                      <td className={td}>{mode === "advances" ? (r.reason ?? <span className="text-muted">—</span>) : <><div className="font-medium">{r.category}</div><div className="text-xs text-muted">{r.description ?? ""}{r.reimbursement === "SEPARATE" ? " · remboursement séparé" : ""}</div></>}</td>
+                      <td className={td}>{mode === "advances" ? (r.reason ?? null) : <><div className="font-medium">{r.category}</div><div className="text-xs text-muted">{r.description ?? ""}{r.reimbursement === "SEPARATE" ? " · remboursement séparé" : ""}</div></>}</td>
                       <td className={cn(td, "font-mono font-semibold tabular")}>{dh(r.amount)}{r.vat ? <div className="text-[11px] font-normal text-muted">dont TVA {dh(r.vat)}</div> : null}</td>
                       <td className={cn(td, "text-[13px]")}>{frDate(r.date ?? r.createdAt)}</td>
                       <td className={td}><StatusPill tone={tone}>{sl}</StatusPill>{r.decisionNote && <div className="mt-1 text-[11px] text-muted">« {r.decisionNote} »</div>}</td>

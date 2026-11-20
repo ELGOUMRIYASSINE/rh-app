@@ -71,6 +71,17 @@ This creates the database schema and the reference data (plans, Moroccan fiscal 
 
 ## 6. Create your organisation
 
+### Your owner account (console)
+
+```bash
+docker compose -f docker-compose.prod.yml exec web pnpm platform:admin --email you@yourcompany.ma --first Your --last Name
+```
+
+It prints a link to choose your password. Then sign in: you land on the console at `https://your-domain/admin`, where you create clinics (client or demo/trial), manage their accounts, answer support requests and see incidents. `pnpm org:create` still works from the command line (`--demo` adds demo data).
+
+### Or from the command line
+
+
 ```bash
 docker compose -f docker-compose.prod.yml exec web pnpm org:create \
   --name "Clinique Al Amal" --slug clinique-al-amal \
@@ -102,9 +113,20 @@ cd /opt/yghr && git pull        # or rsync again
 docker compose -f docker-compose.prod.yml up -d --build   # migrations run automatically
 ```
 
-## Biometric clocks (ZKTeco ADMS)
+## Biometric clocks (ZKTeco)
 
-On each device, open *Communication → Cloud server*. Set the server address to your domain and the port to **80**. Then register the device's serial number in **Pointeuses → Avancé**. Port 80 stays open only for `/iclock/*`; everything else is redirected to HTTPS. LAN mode (port 4370) works only if the server can reach the device's network, for example over a VPN.
+Once the site is online, the clocks at the clinic send their data **to** the server over the internet (ADMS mode). The server cannot reach into the clinic's network, so use ADMS for every clock.
+
+1. In YGHR: **Pointeuses → Pointeuses → Avancé**, enter the clock's serial number (on the clock: *Menu → System info → Device info → Serial number*).
+2. On the clock: *Menu → Communication → Cloud server / ADMS*. Set the server address to your domain, the port to **80**, and turn off "HTTPS" / "Domain name: No proxy".
+3. Within a minute the clock shows **En ligne**. It then sends:
+   - its information: firmware, IP, how many users, fingerprints and faces it holds, and how many clock-ins are stored;
+   - **its users with their names**, card numbers and enrolled fingerprints and faces;
+   - every new clock-in in real time, with its type (entrée, sortie, pause, heures sup) and how the person was identified.
+4. **Pointeuses → Utilisateurs des pointeuses**: click **Associer automatiquement**. This links IDs to employees with the same name or matricule. Accept the suggestions, or create the missing employees from the names on the clock. Linked clock-ins feed presences and payroll automatically.
+5. Older clock-ins: on the clock's card, use **⋯ → Récupérer tout l'historique**.
+
+Port 80 stays open only for `/iclock/*`; everything else is redirected to HTTPS. Only serial numbers registered in YGHR are accepted. LAN mode (port 4370) works only if the server can reach the clinic's network, for example over a VPN.
 
 ## Useful commands
 

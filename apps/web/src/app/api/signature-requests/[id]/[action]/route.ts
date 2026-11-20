@@ -59,7 +59,7 @@ export const POST = route({ feature: "esignature", allowEmployee: true, body: z.
   const { signedUrl, originalHash } = await stampSignedPdf({ fileUrl: req.fileUrl, organizationId: s.org.id, requestId: req.id, signer: `${req.employee.firstName} ${req.employee.lastName}`, email, ip, when, title: req.title, timeZone: s.org.timezone, method: body.method, signatureImage, placement });
   await prisma.signatureRequest.update({ where: { id: req.id }, data: { status: "SIGNED", signedAt: when, signedIp: ip, signedFileUrl: signedUrl, otpHash: null, trail: [...trail, { at: when.toISOString(), event: `Signé ${body.method === "draw" ? "à la main" : "par code e-mail"} (SHA-256 ${originalHash.slice(0, 16)}…)`, ip }] } });
   await prisma.document.create({ data: { organizationId: s.org.id, employeeId: req.employeeId, title: `${req.title} (signé)`, category: "Document signé", fileUrl: signedUrl, mimeType: "application/pdf", uploadedById: s.userId } });
-  await notify(s.org.id, [req.createdById], { type: "signature", title: "Document signé ✅", body: `${req.employee.firstName} ${req.employee.lastName} a signé « ${req.title} ».`, link: `/${s.org.slug}/rh/signature` });
+  await notify(s.org.id, [req.createdById], { type: "signature", title: "Document signé", body: `${req.employee.firstName} ${req.employee.lastName} a signé « ${req.title} ».`, link: `/${s.org.slug}/rh/signature` });
   await log("VALIDATE", "SIGNATURE_REQUEST", req.id, { signed: true, method: body.method, ip, userAgent, sha256: originalHash });
   return { ok: true, signedFileUrl: signedUrl };
 });

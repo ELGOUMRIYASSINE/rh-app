@@ -13,6 +13,8 @@ export interface IncomingPunch {
   source: PunchSource;
   verifyMode?: string | null;
   direction?: string | null;
+  state?: string | null;
+  workCode?: string | null;
   rawPayload?: object;
 }
 
@@ -43,6 +45,8 @@ export async function ingestPunch(db: PrismaClient, p: IncomingPunch) {
       source: p.source,
       verifyMode: p.verifyMode ?? null,
       direction: p.direction ?? null,
+      state: p.state ?? null,
+      workCode: p.workCode ?? null,
       rawPayload: p.rawPayload,
     },
     include: { employee: { select: { firstName: true, lastName: true } }, device: { select: { name: true } } },

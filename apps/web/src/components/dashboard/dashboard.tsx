@@ -31,25 +31,24 @@ export function Dashboard({ initial, base, firstName, space }: { initial: Dashbo
   return (
     <div className="space-y-6">
       {/* HeroGreeting */}
-      <section className="relative overflow-hidden rounded-[18px] bg-brand-900 p-6 text-white shadow-pop sm:p-8">
-        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-brand-500/30 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-32 left-1/3 size-72 rounded-full bg-accent-500/10 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[20px] border border-border bg-surface p-6 shadow-soft sm:p-8">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_120%_at_100%_0%,color-mix(in_srgb,var(--brand-500)_13%,transparent),transparent_70%),radial-gradient(40%_80%_at_0%_100%,color-mix(in_srgb,var(--accent-500)_9%,transparent),transparent_70%)]" />
         <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-white/60">{formatLongDateFr(data.today)}</p>
-            <h1 className="mt-2 font-display text-[30px] font-bold leading-tight sm:text-[34px]">Bonjour {firstName} 👋</h1>
-            <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-white/75">{context}</p>
+            <p className="text-sm font-medium text-muted first-letter:uppercase">{formatLongDateFr(data.today)}</p>
+            <h1 className="mt-2 font-display text-[30px] font-semibold leading-tight tracking-[-0.03em] sm:text-[36px]">Bonjour {firstName}</h1>
+            <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted">{context}</p>
             <div className="mt-6 flex flex-wrap gap-2.5">
               {space === "rh" && (
-                <Link href={`${base}/employes?new=1`} className={buttonVariants({ variant: "accent" })}>
+                <Link href={`${base}/employes?new=1`} className={buttonVariants()}>
                   <UserPlus /> Ajouter un salarié
                 </Link>
               )}
-              <Link href={`${base}/presences`} className={buttonVariants({ variant: "onDark" })}>
+              <Link href={`${base}/presences`} className={buttonVariants({ variant: "secondary" })}>
                 <UserCheck /> Présences du jour
               </Link>
               {space === "rh" && (
-                <Link href={`${base}/paie`} className={buttonVariants({ variant: "onDark" })}>
+                <Link href={`${base}/paie`} className={buttonVariants({ variant: "secondary" })}>
                   <Wallet /> Paie
                 </Link>
               )}
@@ -57,7 +56,7 @@ export function Dashboard({ initial, base, firstName, space }: { initial: Dashbo
           </div>
           <div className="flex items-center gap-8 lg:gap-10">
             <LiveClock tz={tz} />
-            <ProgressRing value={data.presenceRate} size={112} stroke={10} sublabel="% présence" />
+            <ProgressRing value={data.presenceRate} size={112} stroke={10} sublabel="% présence" trackClass="stroke-border" barColor="var(--brand-500)" textClass="text-text" />
           </div>
         </div>
       </section>
@@ -89,7 +88,7 @@ export function Dashboard({ initial, base, firstName, space }: { initial: Dashbo
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <CardHeader title="Présences — 7 derniers jours" subtitle="Arrivées pointées, à l'heure ou en retard" />
+          <CardHeader title="Présences des 7 derniers jours" subtitle="Arrivées pointées, à l'heure ou en retard" />
           <div className="px-3 pb-4">
             {data.chart.every((d) => d.onTime + d.late === 0) ? (
               <EmptyState compact icon={<CalendarCheck2 />} title="Aucun pointage sur les 7 derniers jours">Les arrivées apparaîtront ici dès que vos pointeuses enverront des données.</EmptyState>
@@ -214,7 +213,7 @@ export function Dashboard({ initial, base, firstName, space }: { initial: Dashbo
               <>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-display text-base font-semibold">Paie — {data.payroll.label}</h2>
+                    <h2 className="font-display text-base font-semibold">Paie de {data.payroll.label}</h2>
                     <StatusPill tone={data.payroll.status === "LOCKED" ? "neutral" : data.payroll.status === "VALIDATED" ? "success" : data.payroll.status === "CALCULATED" ? "info" : "warning"}>{data.payroll.statusLabel}</StatusPill>
                   </div>
                   <p className="mt-1 text-sm text-muted">{data.payroll.headcount} bulletin{data.payroll.headcount > 1 ? "s" : ""} · brut {dh(data.payroll.gross, 0)} · net {dh(data.payroll.net, 0)}</p>
@@ -249,15 +248,15 @@ function LiveClock({ tz }: { tz: string }) {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-  const fmt = (o: Intl.DateTimeFormatOptions) => (now ? new Intl.DateTimeFormat("fr-FR", { timeZone: tz, ...o }).format(now) : "--");
+  const fmt = (o: Intl.DateTimeFormatOptions) => (now ? new Intl.DateTimeFormat("fr-FR", { timeZone: tz, ...o }).format(now) : "\u2007\u2007");
   return (
     <div className="text-right">
-      <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/50">Heure locale</div>
+      <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted">Heure locale</div>
       <div className="mt-1 font-mono text-[40px] font-semibold leading-none tabular">
         {fmt({ hour: "2-digit", minute: "2-digit" })}
-        <span className="text-xl text-white/45">:{fmt({ second: "2-digit" }).padStart(2, "0")}</span>
+        <span className="text-xl text-muted">:{fmt({ second: "2-digit" }).padStart(2, "0")}</span>
       </div>
-      <div className="mt-1.5 inline-flex items-center gap-1 text-xs text-white/50"><Clock className="size-3" /> {tz.replace("_", " ")}</div>
+      <div className="mt-1.5 inline-flex items-center gap-1 text-xs text-muted"><Clock className="size-3" /> {tz.replace("_", " ")}</div>
     </div>
   );
 }

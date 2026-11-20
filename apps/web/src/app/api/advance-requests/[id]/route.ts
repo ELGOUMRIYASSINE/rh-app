@@ -22,9 +22,9 @@ export const PATCH = route({ feature: "advances", allowEmployee: true, body: z.o
   const name = `${a!.employee.firstName} ${a!.employee.lastName}`;
   if (status === "APPROVED") {
     const org = await prisma.organization.findUniqueOrThrow({ where: { id: s.org.id } });
-    if (org.accountingEmail) await simpleEmail(org.accountingEmail, `Acompte approuvé — ${name}`, "Acompte sur salaire approuvé", [`Salarié : ${name} (matricule ${a!.employee.matricule ?? "—"})`, `Montant : ${a!.amount.toNumber().toFixed(2)} DH`, `Motif : ${a!.reason ?? "—"}`, `Approuvé par ${s.user.firstName} ${s.user.lastName}. Il sera retenu sur la prochaine paie.`]);
+    if (org.accountingEmail) await simpleEmail(org.accountingEmail, `Acompte approuvé : ${name}`, "Acompte sur salaire approuvé", [`Salarié : ${name} (matricule ${a!.employee.matricule ?? ""})`, `Montant : ${a!.amount.toNumber().toFixed(2)} DH`, `Motif : ${a!.reason ?? ""}`, `Approuvé par ${s.user.firstName} ${s.user.lastName}. Il sera retenu sur la prochaine paie.`]);
   }
-  if (a!.employee.membership && a!.employee.membership.userId !== s.userId) await notify(s.org.id, [a!.employee.membership.userId], { type: "advance", title: status === "APPROVED" ? "Acompte approuvé ✅" : status === "REJECTED" ? "Acompte refusé" : "Acompte annulé", body: status === "REJECTED" ? `Motif : ${body.note}` : `Montant : ${a!.amount.toNumber()} DH.`, link: `/${s.org.slug}/salarie/acomptes` });
+  if (a!.employee.membership && a!.employee.membership.userId !== s.userId) await notify(s.org.id, [a!.employee.membership.userId], { type: "advance", title: status === "APPROVED" ? "Acompte approuvé" : status === "REJECTED" ? "Acompte refusé" : "Acompte annulé", body: status === "REJECTED" ? `Motif : ${body.note}` : `Montant : ${a!.amount.toNumber()} DH.`, link: `/${s.org.slug}/salarie/acomptes` });
   await log(status === "APPROVED" ? "APPROVE" : status === "REJECTED" ? "REJECT" : "UPDATE", "ADVANCE_REQUEST", a!.id, { status, note: body.note });
   return { ok: true };
 });

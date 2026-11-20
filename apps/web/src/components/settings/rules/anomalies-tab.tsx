@@ -57,10 +57,10 @@ export function AnomaliesTab({ today }: { today: string }) {
               {(ex.data?.items ?? []).map((e) => (
                 <tr key={e.id}>
                   <td className={cn(td, "whitespace-nowrap")}>{frDate(e.date)}</td>
-                  <td className={cn(td, "font-mono text-xs")}>{e.anomalyType ?? "—"}</td>
-                  <td className={td}>{e.employee ? `${e.employee.firstName} ${e.employee.lastName}` : "—"}</td>
+                  <td className={cn(td, "font-mono text-xs")}>{e.anomalyType ?? ""}</td>
+                  <td className={td}>{e.employee ? `${e.employee.firstName} ${e.employee.lastName}` : ""}</td>
                   <td className={cn(td, "max-w-sm text-[13px]")}>{e.justification}</td>
-                  <td className={td}>{e.approver ? `${e.approver.firstName} ${e.approver.lastName}` : "—"}</td>
+                  <td className={td}>{e.approver ? `${e.approver.firstName} ${e.approver.lastName}` : ""}</td>
                   <td className={cn(td, "text-right")}><Button size="sm" variant="danger-ghost" onClick={() => revoke(e.id)}><Trash2 /> Révoquer</Button></td>
                 </tr>
               ))}

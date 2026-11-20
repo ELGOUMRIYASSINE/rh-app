@@ -5,6 +5,7 @@ export type RealtimeEvent =
   | "punch:new"
   | "attendance:update"
   | "device:status"
+  | "device:users"
   | "notification:new"
   | "leave:updated"
   | "planning:published"

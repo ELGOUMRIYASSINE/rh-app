@@ -16,7 +16,9 @@ export type AuditAction =
   | "REJECT"
   | "LOCK"
   | "UNLOCK"
-  | "CALCULATE";
+  | "CALCULATE"
+  | "SUSPEND"
+  | "SUPPORT_ACCESS";
 
 export async function audit(e: {
   organizationId: string | null;

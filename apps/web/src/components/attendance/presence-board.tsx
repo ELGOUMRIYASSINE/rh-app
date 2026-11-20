@@ -21,7 +21,7 @@ function LiveTimer({ since, base }: { since: string | null; base: number }) {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [since]);
-  if (!since) return <span className="font-mono tabular text-muted">{base ? hm(base) : "—"}</span>;
+  if (!since) return <span className="font-mono tabular text-muted">{base ? hm(base) : ""}</span>;
   const secs = Math.max(0, Math.floor((now - new Date(since).getTime()) / 1000));
   return <span className="font-mono tabular text-success">{String(Math.floor(secs / 3600)).padStart(2, "0")}:{String(Math.floor((secs % 3600) / 60)).padStart(2, "0")}:{String(secs % 60).padStart(2, "0")}</span>;
 }
@@ -52,7 +52,7 @@ export function PresenceBoard({ today, tz, gestionHref }: { today: string; tz: s
     const order = { PRESENT: 0, LATE: 1, ABSENT: 2, DONE: 3, LEAVE: 4, OFF: 5 } as Record<string, number>;
     return [...l].sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9) || a.lastName.localeCompare(b.lastName));
   }, [relevant, present, absent, tile, seg, q]);
-  const updated = live.dataUpdatedAt ? new Date(live.dataUpdatedAt).toLocaleTimeString("fr-FR") : "—";
+  const updated = live.dataUpdatedAt ? new Date(live.dataUpdatedAt).toLocaleTimeString("fr-FR") : "";
 
   return (
     <div>
@@ -98,12 +98,12 @@ export function PresenceBoard({ today, tz, gestionHref }: { today: string; tz: s
                   return (
                     <tr key={r.employeeId} className="hover:bg-surface-2/50">
                       <td className={td}><div className="flex items-center gap-3"><Avatar name={`${r.firstName} ${r.lastName}`} size={32} /><span className="font-medium">{r.firstName} {r.lastName}</span></div></td>
-                      <td className={cn(td, "text-[13px]")}>{r.position ?? "—"}<div className="text-xs text-muted">{r.serviceName}</div></td>
+                      <td className={cn(td, "text-[13px]")}>{r.position ?? ""}<div className="text-xs text-muted">{r.serviceName}</div></td>
                       <td className={td}><StatusPill tone={t} dot>{l}</StatusPill>{r.lateMinutes > 0 && <div className="mt-1 text-xs text-[#9a6a00] dark:text-warning">+{r.lateMinutes} min</div>}</td>
-                      <td className={cn(td, "font-mono text-xs")}>{r.planned.map((p) => <div key={p.code + p.start}><span className="mr-1 inline-block size-2 rounded-full" style={{ background: p.color }} />{p.start}–{p.end}</div>)}{!r.planned.length && "—"}</td>
+                      <td className={cn(td, "font-mono text-xs")}>{r.planned.map((p) => <div key={p.code + p.start}><span className="mr-1 inline-block size-2 rounded-full" style={{ background: p.color }} />{p.start}–{p.end}</div>)}{!r.planned.length && <span className="text-muted">Non planifié</span>}</td>
                       <td className={cn(td, "font-mono tabular")}>{timeIn(r.firstIn, tz)}</td>
                       <td className={cn(td, "font-mono tabular")}>{timeIn(r.lastPunch, tz)}</td>
-                      <td className={td}>{date === today ? <LiveTimer since={r.openSince} base={r.workedMinutes} /> : <span className="font-mono tabular">{r.workedMinutes ? hm(r.workedMinutes) : "—"}</span>}</td>
+                      <td className={td}>{date === today ? <LiveTimer since={r.openSince} base={r.workedMinutes} /> : <span className="font-mono tabular">{r.workedMinutes ? hm(r.workedMinutes) : ""}</span>}</td>
                     </tr>
                   );
                 })}

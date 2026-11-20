@@ -33,7 +33,7 @@ export async function proxy(req: NextRequest) {
   const headers = new Headers(req.headers);
   headers.set("x-yghr-path", pathname + search);
 
-  if (SPACE_RE.test(pathname) || pathname === "/select-org") {
+  if (SPACE_RE.test(pathname) || pathname === "/select-org" || pathname === "/admin" || pathname.startsWith("/admin/")) {
     const ok = await validAccess(req.cookies.get(ACCESS_COOKIE)?.value);
     if (!ok) {
       const next = encodeURIComponent(pathname + search);

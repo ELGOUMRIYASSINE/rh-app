@@ -3,8 +3,8 @@
   "short_name": "YGHR",
   "start_url": "/login",
   "display": "standalone",
-  "background_color": "#F7F8F6",
-  "theme_color": "#0B2A2F",
+  "background_color": "#F7F8F7",
+  "theme_color": "#F7F8F7",
   "lang": "fr",
   "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }

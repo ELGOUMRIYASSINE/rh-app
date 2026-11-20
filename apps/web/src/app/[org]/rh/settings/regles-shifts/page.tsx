@@ -35,7 +35,7 @@ export default async function RulesPage({ params, searchParams }: { params: Prom
       coverage={coverage.map((c) => ({ id: c.id, shiftTypeId: c.shiftTypeId, serviceId: c.serviceId, staffCategoryId: c.staffCategoryId, min: c.min, max: c.max, days: c.days, severity: c.severity, active: c.active, label: c.label }))}
       rotations={rotations.map((r) => ({
         id: r.id, name: r.name, unit: r.unit, sequence: r.sequence as string[], workDays: r.workDays, active: r.active,
-        assignments: r.assignments.map((a) => ({ id: a.id, label: a.service ? `Service : ${a.service.name}` : a.employee ? `Salarié : ${a.employee.firstName} ${a.employee.lastName}` : a.staffCategory ? `Catégorie : ${a.staffCategory.name}` : "—", startDate: fromDbDate(a.startDate), endDate: a.endDate ? fromDbDate(a.endDate) : null })),
+        assignments: r.assignments.map((a) => ({ id: a.id, label: a.service ? `Service : ${a.service.name}` : a.employee ? `Salarié : ${a.employee.firstName} ${a.employee.lastName}` : a.staffCategory ? `Catégorie : ${a.staffCategory.name}` : "Toute l'organisation", startDate: fromDbDate(a.startDate), endDate: a.endDate ? fromDbDate(a.endDate) : null })),
       }))}
       employees={employees}
     />

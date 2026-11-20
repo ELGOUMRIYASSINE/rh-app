@@ -152,7 +152,7 @@ export function AttendanceGestion({ today, tz, back }: { today: string; tz: stri
                     </div>
                     <div className="flex items-start gap-4 md:justify-end">
                       <dl className="grid grid-cols-4 gap-3 text-center md:grid-cols-2 xl:grid-cols-4">
-                        {[["Travaillé", hm(r.day?.worked ?? 0)], ["Retard", r.day?.late ? `${r.day.late} min` : "—"], ["Nuit", r.day?.night ? hm(r.day.night) : "—"], ["H. sup", r.day?.overtime ? hm(r.day.overtime) : "—"]].map(([k, val]) => (
+                        {[["Travaillé", hm(r.day?.worked ?? 0)], ["Retard", r.day?.late ? `${r.day.late} min` : "Aucun"], ["Nuit", r.day?.night ? hm(r.day.night) : "0h00"], ["H. sup", r.day?.overtime ? hm(r.day.overtime) : "0h00"]].map(([k, val]) => (
                           <div key={k}><dt className="text-[10.5px] uppercase tracking-wide text-muted">{k}</dt><dd className={cn("font-mono text-sm tabular", k === "Retard" && r.day?.late && "text-[#9a6a00] dark:text-warning")}>{val}</dd></div>
                         ))}
                       </dl>

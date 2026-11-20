@@ -11,7 +11,7 @@ import { logoSrc } from "./branding";
 export async function Shell({ s, space, nav, children }: { s: SessionContext; space: Space; nav: NavGroup[]; children: React.ReactNode }) {
   const orgs = s.orgCount > 1 ? (await prisma.membership.findMany({ where: { userId: s.userId, active: true }, include: { organization: true } })).map((m) => ({ id: m.organizationId, name: m.organization.name, slug: m.organization.slug })) : [];
   return (
-    <AppShell base={`/${s.org.slug}/${space}`} space={space} nav={nav} features={s.org.features} permissions={s.permissions} role={s.role} user={s.user} org={{ id: s.org.id, name: s.org.name, slug: s.org.slug, planName: s.org.planName, logo: logoSrc(s.org.slug, s.org.logoUrl) }} orgs={orgs}>
+    <AppShell base={`/${s.org.slug}/${space}`} space={space} nav={nav} features={s.org.features} permissions={s.permissions} role={s.role} user={s.user} org={{ id: s.org.id, name: s.org.name, slug: s.org.slug, planName: s.org.planName, logo: logoSrc(s.org.slug, s.org.logoUrl), status: s.org.status, trialEndsAt: s.org.trialEndsAt }} orgs={orgs}>
       {children}
     </AppShell>
   );

@@ -14,7 +14,7 @@ import { SHIFT_COLORS, type ShiftRow } from "./types";
 export function ShiftTypesTab({ shiftTypes, categories }: RulesData) {
   const router = useRouter();
   const [editing, setEditing] = useState<Partial<ShiftRow> | null>(null);
-  const cat = (id: string | null) => (id ? (categories.find((c) => c.id === id)?.name ?? "—") : "Toutes");
+  const cat = (id: string | null) => (id ? (categories.find((c) => c.id === id)?.name ?? "Inconnue") : "Toutes");
   async function toggle(s: ShiftRow, active: boolean) {
     await api(`/api/shift-types/${s.id}`, { method: "PATCH", body: { active } });
     router.refresh();
@@ -50,7 +50,7 @@ export function ShiftTypesTab({ shiftTypes, categories }: RulesData) {
                   </td>
                   <td className={cn(td, "font-mono tabular")}>{hm(shiftDurationMinutes(s))}</td>
                   <td className={cn(td, "text-[13px]")}>{s.breakMinutes ? `${s.breakMinutes} min · ${s.breakPaid ? "rémunérée" : "non rémunérée"}` : <span className="text-muted">Aucune</span>}</td>
-                  <td className={td}>{s.isNight ? <StatusPill tone="info"><Moon className="size-3" /> Nuit</StatusPill> : <span className="text-muted">—</span>}</td>
+                  <td className={td}>{s.isNight ? <StatusPill tone="info"><Moon className="size-3" /> Nuit</StatusPill> : null}</td>
                   <td className={td}>{cat(s.staffCategoryId)}</td>
                   <td className={td}><Toggle size="sm" checked={s.active} onChange={(v) => toggle(s, v)} /></td>
                   <td className={cn(td, "whitespace-nowrap text-right")}>

@@ -77,7 +77,7 @@ export function NewLeaveModal({ employees, selfEmployeeId, defaultEmployeeId, to
           <div className={cn("flex items-start gap-3 rounded-[12px] border p-3.5 text-sm", p.days > p.balance.available - p.balance.pending ? "border-warning/40 bg-warning-100/50" : "border-brand-500/25 bg-brand-100/40")} aria-live="polite">
             <Wallet className="mt-0.5 size-4 shrink-0 text-brand-500" />
             <div>
-              Solde disponible : <b className="tabular">{Math.max(0, p.balance.available - p.balance.pending)} j {unit}</b> <span className="text-muted">(acquis {p.balance.acquired} · pris {p.balance.taken}{p.balance.pending ? ` · en attente ${p.balance.pending}` : ""})</span> — <b className="tabular">{p.days} j demandés</b>
+              Solde disponible : <b className="tabular">{Math.max(0, p.balance.available - p.balance.pending)} j {unit}</b> <span className="text-muted">(acquis {p.balance.acquired} · pris {p.balance.taken}{p.balance.pending ? ` · en attente ${p.balance.pending}` : ""})</span>, <b className="tabular">{p.days} j demandés</b>
             </div>
           </div>
         )}

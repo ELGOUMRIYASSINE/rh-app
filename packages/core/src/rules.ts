@@ -87,7 +87,7 @@ export function ruleEnabled(rule: WorkRuleDef | undefined): rule is WorkRuleDef 
 export function formatRuleValue(type: WorkRuleType, value: number | null, boolValue: boolean | null): string {
   const unit = RULE_TYPE_META[type].unit;
   if (unit === "bool") return boolValue ? "Oui" : "Non";
-  if (value === null) return "—";
+  if (value === null) return "Non défini";
   const v = Number.isInteger(value) ? String(value) : String(value).replace(".", ",");
   switch (unit) {
     case "h":

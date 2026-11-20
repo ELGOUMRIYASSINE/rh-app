@@ -2,11 +2,18 @@ import { z } from "zod";
 import { prisma } from "@yghr/db";
 import { fail, route } from "@/server/api";
 
-export const GET = route({ feature: "devices", rhOnly: true }, async ({ s }) => ({
-  items: await prisma.device.findMany({ where: { organizationId: s.org.id }, orderBy: { createdAt: "asc" }, include: { _count: { select: { punches: true } } } }),
-  admsHost: process.env.ADMS_PUBLIC_HOST ?? "localhost",
-  admsPort: Number(process.env.ADMS_PUBLIC_PORT ?? 3000),
-}));
+export const GET = route({ feature: "devices", rhOnly: true }, async ({ s }) => {
+  const items = await prisma.device.findMany({
+    where: { organizationId: s.org.id },
+    orderBy: { createdAt: "asc" },
+    include: { _count: { select: { punches: true, users: true } }, commands: { orderBy: { seq: "desc" }, take: 5, select: { id: true, label: true, status: true, createdAt: true, doneAt: true } } },
+  });
+  return {
+    items: items.map(({ commPassword: _c, ...d }) => d),
+    admsHost: process.env.ADMS_PUBLIC_HOST ?? "localhost",
+    admsPort: Number(process.env.ADMS_PUBLIC_PORT ?? 3000),
+  };
+});
 
 const Body = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("LAN"), name: z.string().trim().min(1, "Nom requis").max(60), ip: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$|^[a-z0-9.-]+$/i, "Adresse IP invalide"), port: z.number().int().min(1).max(65535).default(4370), commPassword: z.string().max(20).nullable().optional(), serialNumber: z.string().max(40).nullable().optional(), model: z.string().max(80).nullable().optional(), firmware: z.string().max(80).nullable().optional(), userCount: z.number().int().nullable().optional() }),
@@ -21,5 +28,5 @@ export const POST = route({ feature: "devices", rhOnly: true, body: Body }, asyn
       : { organizationId: s.org.id, mode: "ADMS", name: body.name || `Pointeuse ${body.serialNumber}`, serialNumber: body.serialNumber, status: "UNKNOWN" },
   });
   await log("CREATE", "DEVICE", d.id, { name: d.name, mode: d.mode, ip: d.ip, sn: d.serialNumber });
-  return { item: d };
+  return { item: { ...d, commPassword: undefined } };
 });

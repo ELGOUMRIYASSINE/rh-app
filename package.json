@@ -15,7 +15,8 @@
     "db:local": "node scripts/local-postgres.mjs",
     "db:migrate:deploy": "pnpm --filter @yghr/db exec prisma migrate deploy",
     "test:e2e": "pnpm --filter @yghr/web test:e2e",
-    "org:create": "pnpm --filter @yghr/db org:create"
+    "org:create": "pnpm --filter @yghr/db org:create",
+    "platform:admin": "pnpm --filter @yghr/db platform:admin"
   },
   "devDependencies": {
     "typescript": "5.9.3",

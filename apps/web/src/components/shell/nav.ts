@@ -3,7 +3,7 @@ import type { FeatureKey, Permission } from "@yghr/core";
 export type IconName =
   | "dashboard" | "reports" | "employees" | "planning" | "leaves" | "attendance" | "devices" | "tablets"
   | "payroll" | "advances" | "expenses" | "audit" | "settings" | "signature" | "messages" | "structure"
-  | "availability" | "documents" | "profile" | "home" | "team";
+  | "availability" | "documents" | "profile" | "home" | "team" | "support";
 
 export interface NavItem {
   label: string;
@@ -47,6 +47,7 @@ export const RH_NAV: NavGroup[] = [
     { label: "Structure", href: "/structure", icon: "structure", feature: "structure" },
     { label: "Audit", href: "/logs", icon: "audit", feature: "audit" },
     { label: "Paramètres", href: "/settings", icon: "settings", feature: "settings" },
+    { label: "Support YGHR", href: "/support", icon: "support" },
   ] },
 ];
 

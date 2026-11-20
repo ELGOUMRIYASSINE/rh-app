@@ -67,7 +67,7 @@ export async function calculatePeriod(db: PrismaClient, periodId: string): Promi
   const expenses = await db.expenseReport.findMany({ where: { organizationId: org.id, status: "APPROVED", reimbursement: "PAYROLL", date: { lte: dbDate(to) } } });
   for (const ex of expenses) {
     const exists = await db.payElement.findFirst({ where: { sourceId: ex.id } });
-    if (!exists) await db.payElement.create({ data: { organizationId: org.id, employeeId: ex.employeeId, periodId, kind: "EXPENSE", label: `Note de frais — ${ex.category}`, amount: ex.amount, taxable: false, cnssSubject: false, sourceId: ex.id } });
+    if (!exists) await db.payElement.create({ data: { organizationId: org.id, employeeId: ex.employeeId, periodId, kind: "EXPENSE", label: `Note de frais : ${ex.category}`, amount: ex.amount, taxable: false, cnssSubject: false, sourceId: ex.id } });
   }
 
   let warningsCount = 0;

@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { z, ZodError, type ZodType } from "zod";
 import type { FeatureKey, Permission } from "@yghr/core";
-import { Prisma } from "@yghr/db";
+import { prisma, Prisma } from "@yghr/db";
 import { getSession, type SessionContext, canDo } from "./context";
 import { audit, type AuditAction } from "./audit";
 
@@ -57,6 +57,7 @@ export function route<B extends ZodType | undefined = undefined, Q extends ZodTy
     try {
       const s = await getSession();
       if (!s) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+      if (s.org.blocked) fail(403, "L'accès de votre établissement est suspendu. Contactez l'équipe YGHR.");
       if (opts.feature && !s.org.features.includes(opts.feature)) fail(403, "Cette fonctionnalité n'est pas incluse dans votre pack.");
       if (opts.rhOnly && s.role !== "RH" && s.role !== "SUPER_ADMIN") fail(403, "Action réservée au responsable RH.");
       if (s.role === "SALARIE" && !opts.allowEmployee) fail(403, "Accès refusé.");
@@ -79,12 +80,32 @@ export function route<B extends ZodType | undefined = undefined, Q extends ZodTy
       if (result instanceof Response) return result;
       return NextResponse.json(result ?? { ok: true });
     } catch (e) {
-      return errorResponse(e);
+      return errorResponse(e, { req });
     }
   };
 }
 
-export function errorResponse(e: unknown) {
+/**
+ * Record an unexpected server error so the app owner sees it in the console (Incidents).
+ * Never throws: monitoring must not break the request.
+ */
+export async function recordError(e: unknown, ctx: { req?: NextRequest; organizationId?: string | null; userId?: string | null }) {
+  try {
+    let organizationId = ctx.organizationId ?? null;
+    let userId = ctx.userId ?? null;
+    if (ctx.req && !organizationId) {
+      const s = await getSession().catch(() => null);
+      organizationId = s?.org.id ?? null;
+      userId = s?.userId ?? null;
+    }
+    const err = e instanceof Error ? e : new Error(String(e));
+    await prisma.errorEvent.create({
+      data: { organizationId, userId, method: ctx.req?.method ?? "-", path: ctx.req?.nextUrl.pathname ?? "-", message: err.message.slice(0, 2000), stack: err.stack?.slice(0, 8000) ?? null },
+    });
+  } catch {}
+}
+
+export function errorResponse(e: unknown, ctx?: { req?: NextRequest }) {
   if (e instanceof ApiError) return NextResponse.json({ error: e.message, details: e.details }, { status: e.status });
   if (e instanceof ZodError) {
     const first = e.issues[0];
@@ -96,6 +117,7 @@ export function errorResponse(e: unknown) {
   }
   if (e && typeof e === "object" && "digest" in e) throw e; // Next.js redirect / notFound
   console.error(e);
+  void recordError(e, { req: ctx?.req });
   return NextResponse.json({ error: e instanceof Error && process.env.NODE_ENV !== "production" ? e.message : "Une erreur est survenue." }, { status: 500 });
 }
 

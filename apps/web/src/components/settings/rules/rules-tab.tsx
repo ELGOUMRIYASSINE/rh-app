@@ -17,7 +17,7 @@ export function RulesTab({ rules, categories }: RulesData) {
   const router = useRouter();
   const [filter, setFilter] = useState<string>("all");
   const [editing, setEditing] = useState<Partial<RuleRow> | null>(null);
-  const catName = (id: string | null) => (id ? (categories.find((c) => c.id === id)?.name ?? "—") : "Toutes");
+  const catName = (id: string | null) => (id ? (categories.find((c) => c.id === id)?.name ?? "Inconnue") : "Toutes");
   const list = useMemo(() => rules.filter((r) => filter === "all" || RULE_TYPE_META[r.type].group === filter).sort((a, b) => GROUPS.indexOf(RULE_TYPE_META[a.type].group) - GROUPS.indexOf(RULE_TYPE_META[b.type].group)), [rules, filter]);
 
   async function toggle(r: RuleRow, active: boolean) {

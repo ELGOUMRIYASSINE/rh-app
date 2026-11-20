@@ -52,7 +52,7 @@ export function PayrollDetail({ id, base, isRh }: { id: string; base: string; is
       <Link href={`${base}/paie`} className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-text"><ArrowLeft className="size-4" /> Paie</Link>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[26px] font-bold">Paie — {title}</h1>
+          <h1 className="font-display text-[26px] font-bold">Paie de {title}</h1>
           <div className="mt-2"><Stepper status={status} /></div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -99,8 +99,8 @@ export function PayrollDetail({ id, base, isRh }: { id: string; base: string; is
                     <tr key={p.id} className="cursor-pointer hover:bg-surface-2/50" onClick={() => setOpen(p)}>
                       <td className={td}><div className="flex items-center gap-3"><Avatar name={`${p.employee.firstName} ${p.employee.lastName}`} size={30} /><div><div className="font-medium">{p.employee.lastName} {p.employee.firstName}</div><div className="font-mono text-[11px] text-muted">{p.employee.matricule}</div></div></div></td>
                       <td className={cn(td, "text-right font-mono tabular")}>{hours(worked)}</td>
-                      <td className={cn(td, "text-right font-mono tabular")}>{p.hours.nightMinutes ? hours(p.hours.nightMinutes) : "—"}</td>
-                      <td className={cn(td, "text-right font-mono tabular")}>{(p.hours.overtimeDayMinutes ?? 0) + (p.hours.overtimeNightMinutes ?? 0) ? hours((p.hours.overtimeDayMinutes ?? 0) + (p.hours.overtimeNightMinutes ?? 0)) : "—"}</td>
+                      <td className={cn(td, "text-right font-mono tabular")}>{p.hours.nightMinutes ? hours(p.hours.nightMinutes) : ""}</td>
+                      <td className={cn(td, "text-right font-mono tabular")}>{(p.hours.overtimeDayMinutes ?? 0) + (p.hours.overtimeNightMinutes ?? 0) ? hours((p.hours.overtimeDayMinutes ?? 0) + (p.hours.overtimeNightMinutes ?? 0)) : ""}</td>
                       <td className={cn(td, "text-right font-mono tabular")}>{num(p.gross, 2)}</td>
                       <td className={cn(td, "text-right font-mono tabular text-muted")}>{num(p.cnss, 2)}</td>
                       <td className={cn(td, "text-right font-mono tabular text-muted")}>{num(p.amo, 2)}</td>

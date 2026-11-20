@@ -89,10 +89,10 @@ export function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: 
                     <tr key={r.line} className={cn("border-t border-border", bad ? "bg-danger-100/50" : r.duplicate ? "bg-warning-100/50" : "")}>
                       <td className="px-3 py-2 font-mono text-xs text-muted">{r.line}</td>
                       <td className="px-3 py-2 font-medium">{r.data.firstName} {r.data.lastName}</td>
-                      <td className="px-3 py-2">{r.data.email || <span className="text-danger">—</span>}</td>
-                      <td className="px-3 py-2">{r.data.position ?? "—"}</td>
-                      <td className="px-3 py-2">{r.data.service ?? "—"}</td>
-                      <td className="px-3 py-2">{r.data.contractType ?? "—"}</td>
+                      <td className="px-3 py-2">{r.data.email || <span className="text-danger">Manquant</span>}</td>
+                      <td className="px-3 py-2">{r.data.position ?? ""}</td>
+                      <td className="px-3 py-2">{r.data.service ?? ""}</td>
+                      <td className="px-3 py-2">{r.data.contractType ?? ""}</td>
                       <td className="px-3 py-2 text-xs">
                         {bad ? <span className="text-danger">{r.errors.join(" · ")}</span> : r.duplicate ? <span className="text-[#9a6a00] dark:text-warning">Doublon : e-mail déjà utilisé, ligne ignorée</span> : <span className="text-success">OK</span>}
                       </td>

@@ -38,7 +38,7 @@ export const PATCH = route({ feature: "leaves", allowEmployee: true, body: z.obj
   const label = LEAVE_TYPE_LABELS[l!.type];
   if (userId && userId !== s.userId) {
     const msg = status === "APPROVED" ? `Votre demande (${label}, ${l!.days} j) a été approuvée.` : status === "REJECTED" ? `Votre demande (${label}) a été refusée${body.note ? ` : ${body.note}` : "."}` : `Votre demande (${label}) a été annulée.`;
-    await notify(s.org.id, [userId], { type: "leave", title: status === "APPROVED" ? "Congé approuvé ✅" : status === "REJECTED" ? "Congé refusé" : "Congé annulé", body: msg, link: `/${s.org.slug}/salarie/conges` });
+    await notify(s.org.id, [userId], { type: "leave", title: status === "APPROVED" ? "Congé approuvé" : status === "REJECTED" ? "Congé refusé" : "Congé annulé", body: msg, link: `/${s.org.slug}/salarie/conges` });
   }
   await emit(s.org.id, "leave:updated", { id: l!.id, status });
   await log(status === "APPROVED" ? "APPROVE" : status === "REJECTED" ? "REJECT" : "UPDATE", "LEAVE_REQUEST", l!.id, { status, note: body.note, replacedShifts: replaced, days: eachDay(from, to).length });

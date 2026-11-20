@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Archive, ArrowLeft, Briefcase, CalendarCheck2, CalendarRange, FileText, History, IdCard, Mail, MailPlus, Phone, Save, UserCheck, Wallet, X } from "lucide-react";
+import { Archive, ArrowLeft, Briefcase, Check, CalendarCheck2, CalendarRange, FileText, History, IdCard, Mail, MailPlus, Phone, Save, UserCheck, Wallet, X } from "lucide-react";
 import { LEAVE_TYPE_LABELS, type LeaveType } from "@yghr/core";
 import { Avatar, Button, buttonVariants, Card, CardHeader, cn, readableText, EmptyState, Field, Input, Select, StatusPill, TabPanel, Tabs, td, th } from "@yghr/ui";
 import { toast } from "sonner";
@@ -32,7 +32,7 @@ export function EmployeeProfile({ data, base, tz, edit, initialTab, canSeeRates,
     setSaving(true);
     const body: Record<string, unknown> = {
       firstName: form.firstName, lastName: form.lastName, email: form.email, phone: form.phone, matricule: form.matricule, position: form.position,
-      serviceId: form.serviceId, staffCategoryId: form.staffCategoryId, teamLeadId: form.teamLeadId, contractType: form.contractType, contractReason: form.contractReason,
+      serviceId: form.serviceId, centreId: form.centreId, staffCategoryId: form.staffCategoryId, teamLeadId: form.teamLeadId, contractType: form.contractType, contractReason: form.contractReason,
       weeklyHours: form.weeklyHours, birthDate: form.birthDate ?? "", hireDate: form.hireDate ?? "", cnssNumber: form.cnssNumber, cin: form.cin, familyDependents: form.familyDependents,
     };
     if (canEditRates) Object.assign(body, { hourlyRate: form.hourlyRate, netHourlyRate: form.netHourlyRate, monthlyBase: form.monthlyBase });
@@ -60,18 +60,18 @@ export function EmployeeProfile({ data, base, tz, edit, initialTab, canSeeRates,
       {editing ? (
         <Input id={`f-${String(k)}`} type={opts.type ?? "text"} value={(form[k] as string | number | null) ?? ""} onChange={(ev) => set(k, (opts.type === "number" ? (ev.target.value === "" ? null : Number(ev.target.value)) : ev.target.value || null) as never)} className={opts.mono ? "font-mono" : ""} />
       ) : (
-        <div className={cn("flex h-10 items-center text-sm", opts.mono && "font-mono", !e[k] && e[k] !== 0 && "text-muted")}>{k === "birthDate" || k === "hireDate" ? frDate(e[k] as string | null) : String(e[k] ?? "—")}</div>
+        <div className={cn("flex h-10 items-center text-sm", opts.mono && "font-mono", !e[k] && e[k] !== 0 && "text-muted")}>{k === "birthDate" || k === "hireDate" ? frDate(e[k] as string | null) : String(e[k] ?? "")}</div>
       )}
     </Field>
   );
-  const sel = (label: string, k: "serviceId" | "staffCategoryId" | "teamLeadId" | "contractType", options: { id: string; name: string }[], display: string | null) => (
+  const sel = (label: string, k: "serviceId" | "centreId" | "staffCategoryId" | "teamLeadId" | "contractType", options: { id: string; name: string }[], display: string | null) => (
     <Field label={label} htmlFor={`f-${k}`}>
       {editing ? (
         <Select id={`f-${k}`} value={form[k] ?? ""} onChange={(ev) => set(k, (ev.target.value || null) as never)}>
-          <option value="">— Aucun —</option>
+          <option value="">Aucun</option>
           {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
         </Select>
-      ) : <div className={cn("flex h-10 items-center text-sm", !display && "text-muted")}>{display ?? "—"}</div>}
+      ) : <div className={cn("flex h-10 items-center text-sm", !display && "text-muted")}>{display ?? "Non renseigné"}</div>}
     </Field>
   );
 
@@ -134,7 +134,7 @@ export function EmployeeProfile({ data, base, tz, edit, initialTab, canSeeRates,
                 <CardHeader title="Affectation" />
                 <div className="grid gap-x-4 gap-y-3 px-5 pb-5 sm:grid-cols-2">
                   {txt("Matricule", "matricule", { mono: true })}{txt("Poste", "position")}
-                  {sel("Service", "serviceId", data.services, e.service)}{sel("Catégorie de personnel", "staffCategoryId", data.categories, e.category)}
+                  {data.centres.length > 0 && sel("Centre", "centreId", data.centres, e.centre)}{sel("Service", "serviceId", data.services, e.service)}{sel("Catégorie de personnel", "staffCategoryId", data.categories, e.category)}
                   {sel("Chef d'équipe", "teamLeadId", data.leads, e.teamLead)}
                 </div>
               </Card>
@@ -209,9 +209,9 @@ export function EmployeeProfile({ data, base, tz, edit, initialTab, canSeeRates,
                           <td className={cn(td, "font-mono")}>{timeIn(a.firstIn, tz)}</td>
                           <td className={cn(td, "font-mono")}>{timeIn(a.lastOut, tz)}</td>
                           <td className={cn(td, "font-mono tabular")}>{hm(a.worked)}</td>
-                          <td className={cn(td, "font-mono tabular")}>{a.night ? hm(a.night) : "—"}</td>
-                          <td className={td}>{a.late ? <span className="text-[#9a6a00] dark:text-warning">+{a.late} min</span> : "—"}</td>
-                          <td className={td}>{a.validated ? "✓" : ""}</td>
+                          <td className={cn(td, "font-mono tabular")}>{a.night ? hm(a.night) : ""}</td>
+                          <td className={td}>{a.late ? <span className="text-[#9a6a00] dark:text-warning">+{a.late} min</span> : ""}</td>
+                          <td className={td}>{a.validated ? <Check className="size-4 text-success" aria-label="Validé" /> : null}</td>
                         </tr>
                       );
                     })}
@@ -258,7 +258,7 @@ export function EmployeeProfile({ data, base, tz, edit, initialTab, canSeeRates,
                   {data.payslips.map((p) => (
                     <li key={p.id} className="flex items-center gap-3 px-5 py-3">
                       <FileText className="size-5 text-brand-500" strokeWidth={1.75} />
-                      <div className="flex-1 text-sm">Bulletin de paie — {MONTHS[p.month - 1]} {p.year}</div>
+                      <div className="flex-1 text-sm">Bulletin de paie de {MONTHS[p.month - 1]} {p.year}</div>
                       <a className={buttonVariants({ size: "sm", variant: "secondary" })} href={`/api/payroll/payslips/${p.id}/pdf`} target="_blank" rel="noreferrer">PDF</a>
                     </li>
                   ))}

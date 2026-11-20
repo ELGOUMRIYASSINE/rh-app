@@ -28,6 +28,8 @@ export const GET = route(
 
 export const POST = route({ feature: "employees", permission: "team.add", body: EmployeeInput.extend({ sendInvite: z.boolean().optional() }) }, async ({ s, body, log }) => {
   await assertRefs(s.org.id, body);
+  // Multi-site organisations: every employee belongs to a centre.
+  if (!body.centreId && (await prisma.centre.count({ where: { organizationId: s.org.id, active: true } }))) fail(400, "Choisissez le centre du salarié.");
   if (await prisma.employee.findFirst({ where: { organizationId: s.org.id, email: body.email } })) fail(409, "Un salarié avec cet e-mail existe déjà.");
   // A team lead adding someone makes them part of their team.
   const teamLeadId = s.role === "CHEF" ? s.employeeId : (body.teamLeadId ?? null);

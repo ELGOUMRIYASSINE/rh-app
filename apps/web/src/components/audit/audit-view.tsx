@@ -16,7 +16,7 @@ const ACTIONS: Record<string, [string, Tone]> = {
 const ROLE: Record<string, string> = { RH: "Responsable RH", CHEF: "Chef d'équipe", SALARIE: "Salarié" };
 
 function device(ua: string | null) {
-  if (!ua) return "—";
+  if (!ua) return "";
   const r = new UAParser(ua).getResult();
   return [r.browser.name && `${r.browser.name} ${r.browser.major ?? ""}`.trim(), r.os.name && `${r.os.name} ${r.os.version ?? ""}`.trim()].filter(Boolean).join(" · ") || ua.slice(0, 40);
 }
@@ -63,7 +63,7 @@ export function AuditView({ tz }: { tz: string }) {
                         </button>
                         {open === i.id && d && <div className="mt-2 max-w-xl">{hasDiff ? <JsonDiff before={(d.before ?? null) as Record<string, unknown> | null} after={(d.after ?? null) as Record<string, unknown> | null} /> : <pre className="scrollbar-thin overflow-x-auto rounded-[10px] bg-surface-2 p-3 font-mono text-[11px] leading-relaxed">{JSON.stringify(d, null, 2)}</pre>}</div>}
                       </td>
-                      <td className="border-b border-border px-4 py-3 text-xs"><div className="font-mono">{i.ip ?? "—"}</div><div className="text-muted">{device(i.userAgent)}</div></td>
+                      <td className="border-b border-border px-4 py-3 text-xs"><div className="font-mono">{i.ip ?? ""}</div><div className="text-muted">{device(i.userAgent)}</div></td>
                     </tr>
                   );
                 })}

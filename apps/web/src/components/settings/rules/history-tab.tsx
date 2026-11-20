@@ -16,7 +16,7 @@ export function JsonDiff({ before, after }: { before: Record<string, unknown> | 
   const keys = [...new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})])].filter((k) => !HIDDEN.has(k));
   const rows = keys.filter((k) => JSON.stringify(before?.[k]) !== JSON.stringify(after?.[k]));
   if (!rows.length) return <p className="text-xs text-muted">Aucun champ modifié.</p>;
-  const fmt = (v: unknown) => (v === undefined ? "—" : v === null ? "null" : typeof v === "object" ? JSON.stringify(v) : String(v));
+  const fmt = (v: unknown) => (v === undefined ? "(vide)" : v === null ? "null" : typeof v === "object" ? JSON.stringify(v) : String(v));
   return (
     <div className="overflow-x-auto rounded-[10px] border border-border">
       <table className="w-full font-mono text-xs">

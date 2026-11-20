@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Archive, ArchiveRestore, Download, Eye, FileSpreadsheet, MailPlus, MoreHorizontal, Pencil, RefreshCw, Search, UserPlus, Users, X, Crown, Building, Tags } from "lucide-react";
+import { Archive, ArchiveRestore, Download, Eye, FileSpreadsheet, MailPlus, MoreHorizontal, Pencil, RefreshCw, Search, UserPlus, Users, X, Crown, Building, Building2, Tags, TriangleAlert } from "lucide-react";
 import { Avatar, Button, Card, Checkbox, cn, EmptyState, Input, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, PageHeader, Segmented, Select, StatusPill, TabPanel, Tabs, td, th, Tooltip } from "@yghr/ui";
 import { toast } from "sonner";
 import type { EmployeeListData } from "@/server/employee-list";
@@ -14,12 +14,13 @@ import { TeamLeadsTab } from "./team-leads";
 
 const CONTRACT: Record<string, string> = { CDI: "CDI", CDD: "CDD", INTERIM: "Intérim", STAGE: "Stage" };
 
-export function EmployeesView({ employees, services, categories, leads, base, openNew, initialTab, space }: EmployeeListData & { base: string; openNew?: boolean; initialTab: string; space: "rh" | "chef" }) {
+export function EmployeesView({ employees, services, categories, centres, leads, base, openNew, initialTab, space }: EmployeeListData & { base: string; openNew?: boolean; initialTab: string; space: "rh" | "chef" }) {
   const router = useRouter();
   const pathname = usePathname();
   const [tab, setTab] = useState(initialTab);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
+  const [centre, setCentre] = useState(""); // "" = all, "none" = without centre
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(!!openNew);
   const [importing, setImporting] = useState(false);
@@ -27,8 +28,9 @@ export function EmployeesView({ employees, services, categories, leads, base, op
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return employees.filter((e) => e.status === status && (!needle || `${e.firstName} ${e.lastName} ${e.email} ${e.matricule ?? ""} ${e.position ?? ""}`.toLowerCase().includes(needle)));
-  }, [employees, q, status]);
+    return employees.filter((e) => e.status === status && (!centre || (centre === "none" ? !e.centreId : e.centreId === centre)) && (!needle || `${e.firstName} ${e.lastName} ${e.email} ${e.matricule ?? ""} ${e.position ?? ""}`.toLowerCase().includes(needle)));
+  }, [employees, q, status, centre]);
+  const noCentre = centres.length ? employees.filter((e) => e.status === "ACTIVE" && !e.centreId).length : 0;
   const activeCount = employees.filter((e) => e.status === "ACTIVE").length;
   const allSelected = list.length > 0 && list.every((e) => selected.has(e.id));
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(list.map((e) => e.id)));
@@ -65,12 +67,26 @@ export function EmployeesView({ employees, services, categories, leads, base, op
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
                 <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un salarié…" className="pl-9" aria-label="Rechercher un salarié" />
               </div>
+              {centres.length > 0 && (
+                <Select value={centre} onChange={(e) => { setCentre(e.target.value); setSelected(new Set()); }} className="w-auto min-w-[170px]" aria-label="Filtrer par centre">
+                  <option value="">Tous les centres</option>
+                  {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value="none">Sans centre</option>
+                </Select>
+              )}
               <Segmented value={status} onChange={(v) => { setStatus(v); setSelected(new Set()); }} options={[{ value: "ACTIVE", label: "Actifs" }, { value: "ARCHIVED", label: "Archivés", count: employees.length - activeCount }]} />
               <Tooltip content="Actualiser"><Button variant="secondary" size="icon" onClick={refresh} aria-label="Actualiser"><RefreshCw className={cn(refreshing && "animate-spin")} /></Button></Tooltip>
               <Button variant="secondary" onClick={() => setImporting(true)}><FileSpreadsheet /> Importer (Excel)</Button>
               <Button onClick={() => setAdding(true)}><UserPlus /> Ajouter un salarié</Button>
             </div>
 
+            {noCentre > 0 && space === "rh" && centre !== "none" && (
+              <div className="mx-4 mb-3 flex flex-wrap items-center gap-2 rounded-[12px] bg-warning-100 px-4 py-2.5 text-sm">
+                <TriangleAlert className="size-4 text-warning" />
+                <span className="flex-1"><b>{noCentre} salarié{noCentre > 1 ? "s" : ""}</b> sans centre. Chaque salarié doit être rattaché à un centre.</span>
+                <Button size="sm" variant="secondary" onClick={() => { setCentre("none"); setStatus("ACTIVE"); setSelected(new Set()); }}>Les afficher</Button>
+              </div>
+            )}
             {selected.size > 0 && (
               <div className="mx-4 mb-3 flex flex-wrap items-center gap-2 rounded-[12px] bg-brand-900 px-4 py-2.5 text-sm text-white animate-fade-in">
                 <span className="mr-2 font-medium">{selected.size} sélectionné{selected.size > 1 ? "s" : ""}</span>
@@ -78,6 +94,7 @@ export function EmployeesView({ employees, services, categories, leads, base, op
                 {space === "rh" && (
                   <>
                     <BulkSelect icon={<Crown />} label="Chef d'équipe" options={leads.filter((l) => l.employeeId).map((l) => [l.employeeId!, l.name])} onPick={(v) => bulk("teamLead", v)} />
+                    {centres.length > 0 && <BulkSelect icon={<Building2 />} label="Centre" options={centres.map((c) => [c.id, c.name])} onPick={(v) => bulk("centre", v)} />}
                     <BulkSelect icon={<Building />} label="Service" options={services.map((s) => [s.id, s.name])} onPick={(v) => bulk("service", v)} />
                     <BulkSelect icon={<Tags />} label="Catégorie" options={categories.map((s) => [s.id, s.name])} onPick={(v) => bulk("category", v)} />
                   </>
@@ -112,21 +129,21 @@ export function EmployeesView({ employees, services, categories, leads, base, op
                               <div className="min-w-0">
                                 <Link href={`${base}/employes/${e.id}`} className="font-medium hover:text-brand-500" onClick={(ev) => ev.stopPropagation()}>{name}</Link>
                                 {e.isLead && <Crown className="ml-1.5 inline size-3.5 text-accent-500" aria-label="Chef d'équipe" />}
-                                <div className="font-mono text-xs text-muted">{e.matricule ?? "—"}</div>
+                                <div className="font-mono text-xs text-muted">{e.matricule ?? ""}</div>
                               </div>
                             </div>
                           </td>
                           <td className={td}>
-                            <div>{e.position ?? <span className="text-muted">—</span>}</div>
-                            <div className="text-xs text-muted">{[e.service, e.category].filter(Boolean).join(" · ")}</div>
+                            <div>{e.position ?? null}</div>
+                            <div className="text-xs text-muted">{[e.centre, e.service, e.category].filter(Boolean).join(" · ")}</div>
                           </td>
-                          <td className={cn(td, "text-[13px]")}>{e.teamLead ?? <span className="text-muted">—</span>}</td>
+                          <td className={cn(td, "text-[13px]")}>{e.teamLead ?? null}</td>
                           <td className={td}>
-                            <div className="max-w-[220px] truncate text-[13px]">{e.email}</div>
+                            {e.email.endsWith(".invalid") ? <div className="text-[13px] font-medium text-[#9a6a00] dark:text-warning">E-mail à compléter</div> : <div className="max-w-[220px] truncate text-[13px]">{e.email}</div>}
                             <div className="text-xs text-muted">{e.phone ?? ""}</div>
                           </td>
                           <td className={td}>
-                            {e.contractType ? <StatusPill tone="brand">{CONTRACT[e.contractType]}</StatusPill> : <span className="text-muted">—</span>}
+                            {e.contractType ? <StatusPill tone="brand">{CONTRACT[e.contractType]}</StatusPill> : null}
                             {e.weeklyHours && <div className="mt-1 text-xs text-muted">{e.weeklyHours} h/sem.</div>}
                           </td>
                           <td className={td}>
@@ -159,7 +176,7 @@ export function EmployeesView({ employees, services, categories, leads, base, op
           </TabPanel>
         )}
       </Tabs>
-      {adding && <AddEmployeeModal services={services} categories={categories} onClose={() => setAdding(false)} onCreated={() => { setAdding(false); router.refresh(); }} canCreateRefs={space === "rh"} />}
+      {adding && <AddEmployeeModal services={services} categories={categories} centres={centres} onClose={() => setAdding(false)} onCreated={() => { setAdding(false); router.refresh(); }} canCreateRefs={space === "rh"} />}
       {importing && <ImportModal onClose={() => setImporting(false)} onDone={() => router.refresh()} />}
     </div>
   );
@@ -170,7 +187,7 @@ function BulkSelect({ icon, label, options, onPick }: { icon: React.ReactNode; l
     <Menu>
       <MenuTrigger asChild><Button size="sm" variant="onDark">{icon} {label}</Button></MenuTrigger>
       <MenuContent align="start" className="max-h-72 overflow-y-auto">
-        <MenuItem onSelect={() => onPick(null)}>— Aucun —</MenuItem>
+        <MenuItem onSelect={() => onPick(null)}>Aucun</MenuItem>
         {options.map(([id, n]) => <MenuItem key={id} onSelect={() => onPick(id!)}>{n}</MenuItem>)}
       </MenuContent>
     </Menu>

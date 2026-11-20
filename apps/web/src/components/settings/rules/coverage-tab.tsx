@@ -12,7 +12,7 @@ import { DAY_SHORT, daysLabel, type CoverageRow } from "./types";
 export function CoverageTab({ coverage, shiftTypes, services, categories }: RulesData) {
   const router = useRouter();
   const [editing, setEditing] = useState<Partial<CoverageRow> | null>(null);
-  const name = <T extends { id: string; name: string }>(list: T[], id: string | null, fallback = "Tous") => (id ? (list.find((x) => x.id === id)?.name ?? "—") : fallback);
+  const name = <T extends { id: string; name: string }>(list: T[], id: string | null, fallback = "Tous") => (id ? (list.find((x) => x.id === id)?.name ?? "Inconnu") : fallback);
   async function remove(c: CoverageRow) {
     if (!(await confirmDialog({ title: "Supprimer cette règle de couverture ?", danger: true, confirmLabel: "Supprimer" }))) return;
     await api(`/api/coverage-rules/${c.id}`, { method: "DELETE" });
@@ -35,13 +35,13 @@ export function CoverageTab({ coverage, shiftTypes, services, categories }: Rule
                 return (
                   <tr key={c.id} className={cn("hover:bg-surface-2/50", !c.active && "opacity-60")}>
                     <td className={td}>
-                      <span className="inline-flex items-center gap-2 font-medium"><span className="size-2.5 rounded-full" style={{ background: st?.color }} />{st?.name ?? "—"}</span>
+                      <span className="inline-flex items-center gap-2 font-medium"><span className="size-2.5 rounded-full" style={{ background: st?.color }} />{st?.name ?? "Inconnu"}</span>
                       {c.label && <div className="text-xs text-muted">{c.label}</div>}
                     </td>
                     <td className={td}>{name(services, c.serviceId)}</td>
                     <td className={td}>{name(categories, c.staffCategoryId, "Toutes")}</td>
                     <td className={cn(td, "font-semibold tabular")}>{c.min}</td>
-                    <td className={cn(td, "tabular")}>{c.max ?? "—"}</td>
+                    <td className={cn(td, "tabular")}>{c.max ?? "Illimité"}</td>
                     <td className={cn(td, "text-[13px]")}>{daysLabel(c.days)}</td>
                     <td className={td}><SeverityBadge severity={c.severity} /></td>
                     <td className={td}><Toggle size="sm" checked={c.active} onChange={async (v) => { await api(`/api/coverage-rules/${c.id}`, { method: "PATCH", body: { active: v } }); router.refresh(); }} /></td>

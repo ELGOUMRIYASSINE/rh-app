@@ -58,7 +58,7 @@ export function LoginForm({ next }: { next?: string }) {
       {step === "password" && (
         <>
           <div>
-            <h1 className="font-display text-[26px] font-bold">Bon retour 👋</h1>
+            <h1 className="font-display text-[26px] font-bold">Bon retour</h1>
             <p className="mt-1.5 text-sm text-muted">Connectez-vous à votre espace YGHR.</p>
           </div>
           <Field label="Adresse e-mail" htmlFor="email">

@@ -6,12 +6,12 @@ import { cn } from "./cn";
 
 // ───────── Button ─────────
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[10px] font-medium transition-[background,color,box-shadow,transform] duration-150 ease-out disabled:pointer-events-none disabled:opacity-50 active:translate-y-px [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:stroke-[1.75] cursor-pointer select-none",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-[background,color,box-shadow,transform] duration-150 ease-out disabled:pointer-events-none disabled:opacity-50 active:translate-y-px [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:stroke-[1.75] cursor-pointer select-none",
   {
     variants: {
       variant: {
-        primary: "bg-brand-500 text-white shadow-[0_1px_2px_rgb(0_0_0/.08)] hover:bg-brand-700 dark:text-brand-900 dark:hover:bg-brand-400",
-        secondary: "bg-surface text-text border border-border hover:bg-surface-2",
+        primary: "bg-brand-500 text-white shadow-[inset_0_1px_0_rgb(255_255_255/.14),0_1px_2px_rgb(16_26_24/.12)] hover:bg-brand-700 dark:text-brand-900 dark:hover:bg-brand-400",
+        secondary: "bg-surface text-text border border-border shadow-soft hover:bg-surface-2",
         ghost: "text-text hover:bg-surface-2",
         subtle: "bg-brand-100 text-brand-700 hover:bg-brand-100/70 dark:text-brand-400",
         accent: "bg-accent-500 text-brand-900 hover:brightness-95",
@@ -20,7 +20,7 @@ export const buttonVariants = cva(
         onDark: "bg-white/10 text-white hover:bg-white/20 border border-white/15",
         link: "text-brand-500 underline-offset-4 hover:underline px-0 h-auto",
       },
-      size: { sm: "h-8 px-3 text-[13px]", md: "h-10 px-4 text-sm", lg: "h-11 px-5 text-[15px]", icon: "size-9", "icon-sm": "size-8" },
+      size: { sm: "h-8 px-3.5 text-[13px]", md: "h-10 px-[18px] text-sm", lg: "h-11 px-6 text-[15px]", icon: "size-9", "icon-sm": "size-8" },
     },
     defaultVariants: { variant: "primary", size: "md" },
   },
@@ -51,14 +51,13 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
 ));
 Textarea.displayName = "Textarea";
 
-export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(({ className, children, ...props }, ref) => (
+const SELECT_ARROW = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2366736F' stroke-width='2'><path d='m6 9 6 6 6-6'/></svg>")`;
+/** Native select. The arrow is set inline so tailwind-merge never drops the themed background colour. */
+export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(({ className, children, style, ...props }, ref) => (
   <select
     ref={ref}
-    className={cn(
-      fieldBase,
-      "h-10 appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2366736F%22 stroke-width=%222%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:16px] bg-[right_10px_center] bg-no-repeat pr-9",
-      className,
-    )}
+    className={cn(fieldBase, "h-10 appearance-none bg-[length:16px] bg-[position:right_10px_center] bg-no-repeat pr-9", className)}
+    style={{ backgroundImage: SELECT_ARROW, ...style }}
     {...props}
   >
     {children}
@@ -148,7 +147,7 @@ export function Toggle({ checked, onChange, label, description, disabled, size =
 
 // ───────── Surfaces ─────────
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("rounded-[14px] border border-border bg-surface shadow-soft", className)} {...props} />;
+  return <div className={cn("rounded-[16px] border border-border bg-surface shadow-soft", className)} {...props} />;
 }
 export function CardHeader({ title, subtitle, actions, className, icon }: { title: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; className?: string; icon?: React.ReactNode }) {
   return (
@@ -156,7 +155,7 @@ export function CardHeader({ title, subtitle, actions, className, icon }: { titl
       <div className="flex min-w-0 items-start gap-3">
         {icon && <div className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-brand-100 text-brand-700 dark:text-brand-400 [&_svg]:size-[18px]">{icon}</div>}
         <div className="min-w-0">
-          <h3 className="text-[15px] font-semibold leading-tight">{title}</h3>
+          <h3 className="text-[15px] font-semibold leading-tight tracking-[-0.01em]">{title}</h3>
           {subtitle && <p className="mt-1 text-[13px] leading-relaxed text-muted">{subtitle}</p>}
         </div>
       </div>
@@ -199,7 +198,7 @@ export function SeverityBadge({ severity, label }: { severity: "BLOCKING" | "WAR
 }
 
 // ───────── Avatar ─────────
-const AVATAR_COLORS = ["#14808C", "#F2A541", "#1F9D6B", "#3B82F6", "#6D4AFF", "#D64545", "#0F4C55", "#C2410C"];
+const AVATAR_COLORS = ["#0F766E", "#E9A23B", "#1F9D6B", "#3B82F6", "#6D4AFF", "#D64545", "#0B5E56", "#C2410C"];
 export function Avatar({ name, src, size = 32, className }: { name: string; src?: string | null; size?: number; className?: string }) {
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
   let h = 0;
@@ -220,7 +219,7 @@ export function Avatar({ name, src, size = 32, className }: { name: string; src?
 // ───────── Segmented control ─────────
 export function Segmented<T extends string>({ value, onChange, options, size = "md", className }: { value: T; onChange: (v: T) => void; options: { value: T; label: React.ReactNode; count?: number }[]; size?: "sm" | "md"; className?: string }) {
   return (
-    <div role="tablist" className={cn("inline-flex rounded-[10px] border border-border bg-surface-2 p-0.5", className)}>
+    <div role="tablist" className={cn("inline-flex rounded-full border border-border bg-surface-2 p-0.5", className)}>
       {options.map((o) => (
         <button
           key={o.value}
@@ -229,7 +228,7 @@ export function Segmented<T extends string>({ value, onChange, options, size = "
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] font-medium transition-colors duration-150",
+            "inline-flex cursor-pointer items-center gap-1.5 rounded-full font-medium transition-colors duration-150",
             size === "sm" ? "h-7 px-2.5 text-xs" : "h-8 px-3 text-[13px]",
             value === o.value ? "bg-surface text-text shadow-soft" : "text-muted hover:text-text",
           )}

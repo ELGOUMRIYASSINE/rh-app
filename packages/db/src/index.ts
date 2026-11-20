@@ -37,3 +37,4 @@ export * from "./services/payroll";
 export * from "./services/punches";
 export * from "./services/live";
 export * from "./services/devices";
+export * from "./services/provision";

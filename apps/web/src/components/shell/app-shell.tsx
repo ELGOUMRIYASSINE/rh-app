@@ -23,7 +23,7 @@ export interface ShellProps {
   permissions: PermissionSet;
   role: string;
   user: { firstName: string; lastName: string; email: string; avatarUrl: string | null };
-  org: { id: string; name: string; slug: string; planName: string; logo: string | null };
+  org: { id: string; name: string; slug: string; planName: string; logo: string | null; status?: string; trialEndsAt?: string | null };
   orgs: { id: string; name: string; slug: string }[];
   children: React.ReactNode;
 }
@@ -111,22 +111,22 @@ function ShellInner({ base, space, nav, features, permissions, role, user, org, 
   const sidebar = (mobile: boolean) => {
     const mini = collapsed && !mobile;
     return (
-      <div className={cn("flex h-full flex-col bg-brand-900 text-white/80", mini ? "w-[72px]" : "w-[260px]")}>
+      <div className={cn("flex h-full flex-col border-r border-border bg-surface text-muted", mini ? "w-[72px]" : "w-[260px]")}>
         <div className={cn("flex h-16 shrink-0 items-center", mini ? "justify-center" : "justify-between px-5")}>
           <Link href={base} aria-label={`Accueil ${org.name}`} className="flex min-w-0 items-center gap-2.5">
             {org.logo ? (
               <>
-                <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-white p-0.5">
+                <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-[10px] border border-border bg-white p-0.5">
                   <img src={org.logo} alt="" className="max-h-full max-w-full object-contain" />
                 </span>
-                {!mini && <span className="truncate font-display text-[15px] font-semibold leading-tight text-white">{org.name}</span>}
+                {!mini && <span className="truncate font-display text-[15px] font-semibold leading-tight tracking-[-0.01em] text-text">{org.name}</span>}
               </>
             ) : (
-              <YGHRLogo variant={mini ? "mark" : "full"} onDark size={32} />
+              <YGHRLogo variant={mini ? "mark" : "full"} size={32} />
             )}
           </Link>
           {mobile && (
-            <button onClick={() => setDrawer(false)} className="grid size-8 cursor-pointer place-items-center rounded-lg hover:bg-white/10" aria-label="Fermer le menu">
+            <button onClick={() => setDrawer(false)} className="grid size-8 cursor-pointer place-items-center rounded-lg hover:bg-surface-2" aria-label="Fermer le menu">
               <X className="size-4" />
             </button>
           )}
@@ -134,8 +134,8 @@ function ShellInner({ base, space, nav, features, permissions, role, user, org, 
         <nav className="scrollbar-thin flex-1 space-y-5 overflow-y-auto px-3 py-3" aria-label="Navigation principale">
           {visibleNav.map((g) => (
             <div key={g.label}>
-              {!mini && <div className="mb-1.5 px-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/40">{g.label}</div>}
-              {mini && <div className="mx-3 mb-2 h-px bg-white/10" />}
+              {!mini && <div className="mb-1.5 px-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted/80">{g.label}</div>}
+              {mini && <div className="mx-3 mb-2 h-px bg-border" />}
               <ul className="space-y-0.5">
                 {g.items.map((i) => {
                   const Icon = NAV_ICONS[i.icon];
@@ -147,20 +147,20 @@ function ShellInner({ base, space, nav, features, permissions, role, user, org, 
                       className={cn(
                         "group relative flex h-10 items-center gap-3 rounded-[10px] text-[13.5px] font-medium transition-colors duration-150",
                         mini ? "justify-center" : "px-3",
-                        active ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white",
-                        i.locked && "text-white/45",
+                        active ? "bg-brand-100/70 text-text dark:bg-brand-100" : "hover:bg-surface-2 hover:text-text",
+                        i.locked && "text-muted/60",
                       )}
                     >
-                      {active && <span className="absolute left-0 top-2 h-6 w-[3px] rounded-r-full bg-accent-500" />}
-                      <Icon className={cn("size-[18px] shrink-0", active ? "text-accent-500" : "")} strokeWidth={1.75} />
+                      {active && <span className="absolute left-0 top-2 h-6 w-[3px] rounded-r-full bg-brand-500" />}
+                      <Icon className={cn("size-[18px] shrink-0", active ? "text-brand-500" : "")} strokeWidth={1.75} />
                       {!mini && <span className="truncate">{i.label}</span>}
-                      {!mini && i.locked && <Lock className="ml-auto size-3.5 text-white/40" />}
+                      {!mini && i.locked && <Lock className="ml-auto size-3.5 text-muted/60" />}
                     </Link>
                   );
                   return (
                     <li key={i.href}>
                       {mini || i.locked ? (
-                        <Tooltip side="right" content={i.locked ? `${i.label} — non inclus dans votre pack` : i.label}>
+                        <Tooltip side="right" content={i.locked ? `${i.label} : non inclus dans votre pack` : i.label}>
                           {link}
                         </Tooltip>
                       ) : (
@@ -173,26 +173,26 @@ function ShellInner({ base, space, nav, features, permissions, role, user, org, 
             </div>
           ))}
         </nav>
-        <div className="border-t border-white/10 p-3">
+        <div className="border-t border-border p-3">
           <div className={cn("flex items-center gap-3 rounded-[12px] p-2", mini && "justify-center")}>
             <Avatar name={`${user.firstName} ${user.lastName}`} src={user.avatarUrl} size={34} />
             {!mini && (
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-white">{user.firstName} {user.lastName}</div>
-                <div className="truncate text-xs text-white/50">{ROLE_LABEL[role] ?? role}</div>
+                <div className="truncate text-sm font-semibold text-text">{user.firstName} {user.lastName}</div>
+                <div className="truncate text-xs text-muted">{ROLE_LABEL[role] ?? role}</div>
               </div>
             )}
             {!mini && (
               <Tooltip content="Se déconnecter">
-                <button onClick={logout} className="grid size-8 cursor-pointer place-items-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white" aria-label="Se déconnecter">
+                <button onClick={logout} className="grid size-8 cursor-pointer place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-text" aria-label="Se déconnecter">
                   <LogOut className="size-4" />
                 </button>
               </Tooltip>
             )}
           </div>
-          {org.logo && !mini && <div className="px-3 pt-1 text-[10.5px] text-white/35">Propulsé par YGHR</div>}
+          {org.logo && !mini && <div className="px-3 pt-1 text-[10.5px] text-muted/70">Propulsé par YGHR</div>}
           {!mobile && (
-            <button onClick={toggleCollapsed} className={cn("mt-1 flex h-8 w-full cursor-pointer items-center gap-2 rounded-lg px-3 text-xs text-white/45 hover:bg-white/5 hover:text-white", mini && "justify-center px-0")} aria-label={mini ? "Déplier le menu" : "Replier le menu"}>
+            <button onClick={toggleCollapsed} className={cn("mt-1 flex h-8 w-full cursor-pointer items-center gap-2 rounded-lg px-3 text-xs text-muted hover:bg-surface-2 hover:text-text", mini && "justify-center px-0")} aria-label={mini ? "Déplier le menu" : "Replier le menu"}>
               {mini ? <ChevronsRight className="size-4" /> : <><ChevronsLeft className="size-4" /> Replier</>}
             </button>
           )}
@@ -207,11 +207,20 @@ function ShellInner({ base, space, nav, features, permissions, role, user, org, 
       <aside className="no-print sticky top-0 hidden h-dvh shrink-0 lg:block">{sidebar(false)}</aside>
       {drawer && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-brand-900/50 animate-fade-in" onClick={() => setDrawer(false)} />
+          <div className="absolute inset-0 bg-brand-900/30 backdrop-blur-[2px] animate-fade-in" onClick={() => setDrawer(false)} />
           <div className="absolute inset-y-0 left-0 animate-slide-in-right shadow-pop">{sidebar(true)}</div>
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-col">
+        {role === "SUPER_ADMIN" && (
+          <div className="no-print flex flex-wrap items-center gap-3 bg-accent-500 px-4 py-2 text-sm font-medium text-brand-900 sm:px-6">
+            <span className="flex-1">Mode support : vous êtes dans l&apos;espace de <b>{org.name}</b> en tant qu&apos;Admin YGHR. Vos actions sont inscrites dans son journal.</span>
+            <button onClick={async () => { const r = await api<{ redirect: string }>("/api/admin/leave", { body: {} }); window.location.href = r.redirect; }} className="cursor-pointer rounded-lg bg-brand-900 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-800">Revenir à la console</button>
+          </div>
+        )}
+        {role !== "SUPER_ADMIN" && org.status === "TRIAL" && org.trialEndsAt && (
+          <div className="no-print bg-info-100 px-4 py-2 text-center text-[13px] text-info sm:px-6">Version d&apos;essai : votre accès est ouvert jusqu&apos;au <b>{new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Africa/Casablanca" }).format(new Date(org.trialEndsAt))}</b>. Une question ? Menu « Support YGHR ».</div>
+        )}
         <header className="no-print sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-bg/85 px-4 backdrop-blur-md sm:px-6">
           <button className="grid size-9 cursor-pointer place-items-center rounded-lg hover:bg-surface-2 lg:hidden" onClick={() => setDrawer(true)} aria-label="Ouvrir le menu">
             <MenuIcon className="size-5" />

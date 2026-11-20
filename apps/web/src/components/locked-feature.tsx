@@ -25,7 +25,7 @@ export function LockedFeature({ title, feature }: { title: string; feature: stri
       <h1 className="font-display text-2xl font-bold">{title}</h1>
       <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">Cette page n'est pas incluse dans votre pack. Contactez-nous pour l'activer ou passer au pack supérieur.</p>
       <Button className="mt-7" onClick={request} loading={loading} disabled={sent}>
-        {sent ? "Demande envoyée ✓" : "Demander l'activation"}
+        {sent ? "Demande envoyée" : "Demander l'activation"}
       </Button>
     </Card>
   );

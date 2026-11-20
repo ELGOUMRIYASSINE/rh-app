@@ -13,6 +13,7 @@ const schema = z.object({
   lastName: z.string().trim().min(1, "Nom requis"),
   email: z.string().trim().email("E-mail invalide"),
   serviceId: z.string().optional(),
+  centreId: z.string().optional(),
   staffCategoryId: z.string().optional(),
   phone: z.string().optional(),
   netHourlyRate: z.string().optional().refine((v) => !v || !Number.isNaN(Number(v.replace(",", "."))), "Nombre invalide"),
@@ -20,10 +21,10 @@ const schema = z.object({
 type F = z.infer<typeof schema>;
 const NEW = "__new__";
 
-export function AddEmployeeModal({ services: initialServices, categories: initialCategories, onClose, onCreated, canCreateRefs = true }: { services: { id: string; name: string }[]; categories: { id: string; name: string }[]; onClose: () => void; onCreated: () => void; canCreateRefs?: boolean }) {
+export function AddEmployeeModal({ services: initialServices, categories: initialCategories, centres = [], onClose, onCreated, canCreateRefs = true }: { services: { id: string; name: string }[]; categories: { id: string; name: string }[]; centres?: { id: string; name: string }[]; onClose: () => void; onCreated: () => void; canCreateRefs?: boolean }) {
   const [services, setServices] = useState(initialServices);
   const [categories, setCategories] = useState(initialCategories);
-  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<F>({ resolver: zodResolver(schema), defaultValues: { serviceId: "", staffCategoryId: "" } });
+  const { register, handleSubmit, setValue, setError, formState: { errors, isSubmitting } } = useForm<F>({ resolver: zodResolver(schema), defaultValues: { serviceId: "", staffCategoryId: "", centreId: centres.length === 1 ? centres[0]!.id : "" } });
 
   const [creating, setCreating] = useState<"service" | "category" | null>(null);
   const [newName, setNewName] = useState("");
@@ -56,9 +57,10 @@ export function AddEmployeeModal({ services: initialServices, categories: initia
     );
 
   async function submit(f: F) {
+    if (centres.length && !f.centreId) return setError("centreId", { message: "Choisissez le centre du salarié" });
     try {
       const r = await api<{ invited: boolean }>("/api/employees", {
-        body: { firstName: f.firstName, lastName: f.lastName, email: f.email, serviceId: f.serviceId || null, staffCategoryId: f.staffCategoryId || null, phone: f.phone || null, netHourlyRate: f.netHourlyRate ? Number(f.netHourlyRate.replace(",", ".")) : null },
+        body: { firstName: f.firstName, lastName: f.lastName, email: f.email, serviceId: f.serviceId || null, centreId: f.centreId || null, staffCategoryId: f.staffCategoryId || null, phone: f.phone || null, netHourlyRate: f.netHourlyRate ? Number(f.netHourlyRate.replace(",", ".")) : null },
       });
       toast.success(`${f.firstName} ${f.lastName} a été ajouté(e).`, { description: r.invited ? `Un e-mail avec ses accès a été envoyé à ${f.email}.` : undefined });
       onCreated();
@@ -86,9 +88,17 @@ export function AddEmployeeModal({ services: initialServices, categories: initia
         <section className="space-y-3">
           <SectionLabel>Affectation</SectionLabel>
           <div className="grid gap-3 sm:grid-cols-2">
+            {centres.length > 0 && (
+              <Field className="sm:col-span-2" label="Centre" required htmlFor="ce" error={errors.centreId?.message} help="Le site où il travaille : il ne pourra pointer que sur les tablettes de ce centre.">
+                <Select id="ce" {...register("centreId")} aria-invalid={!!errors.centreId}>
+                  <option value="">Choisir un centre</option>
+                  {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </Select>
+              </Field>
+            )}
             <Field label="Service" htmlFor="sv">
               <Select id="sv" {...register("serviceId", { onChange: (e) => { if (e.target.value === NEW) { setValue("serviceId", ""); setNewName(""); setCreating("service"); } } })}>
-                <option value="">— Aucun —</option>
+                <option value="">Aucun</option>
                 {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 {canCreateRefs && <option value={NEW}>＋ Créer un service</option>}
               </Select>
@@ -96,7 +106,7 @@ export function AddEmployeeModal({ services: initialServices, categories: initia
             </Field>
             <Field label="Catégorie de personnel" htmlFor="ct">
               <Select id="ct" {...register("staffCategoryId", { onChange: (e) => { if (e.target.value === NEW) { setValue("staffCategoryId", ""); setNewName(""); setCreating("category"); } } })}>
-                <option value="">— Aucune —</option>
+                <option value="">Aucune</option>
                 {categories.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 {canCreateRefs && <option value={NEW}>＋ Créer une catégorie</option>}
               </Select>

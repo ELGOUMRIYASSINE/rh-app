@@ -2,36 +2,46 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronDown, Clock, Cloud, Copy, Fingerprint, History, Link2, MoreHorizontal, Pencil, Plug, RefreshCw, Server, Trash2, Wifi, WifiOff, X } from "lucide-react";
-import { Avatar, Button, Card, CardHeader, cn, EmptyState, Field, Input, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, PageHeader, Select, Skeleton, StatusPill, TabPanel, Tabs, td, th, Toggle } from "@yghr/ui";
+import { CheckCircle2, ChevronDown, Clock, Cloud, Copy, CreditCard, Download, DownloadCloud, Fingerprint, History, Info, KeyRound, Link2, MoreHorizontal, Pencil, Plug, Power, RefreshCw, ScanFace, Search, Server, ShieldCheck, Sparkles, Trash2, UserPlus, Users, Wifi, WifiOff, X } from "lucide-react";
+import { Avatar, Button, Card, CardHeader, Checkbox, cn, EmptyState, Field, Input, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Modal, PageHeader, Segmented, Select, Skeleton, StatusPill, TabPanel, Tabs, td, th, Toggle } from "@yghr/ui";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, download } from "@/lib/api";
 import { frDateTime, timeIn } from "@/lib/format";
 import { confirmDialog } from "@/components/confirm";
 import { useRealtimeEvent } from "@/components/shell/realtime";
 
-interface Device { id: string; name: string; mode: "LAN" | "ADMS"; ip: string | null; port: number; serialNumber: string | null; model: string | null; firmware: string | null; userCount: number | null; status: "ONLINE" | "OFFLINE" | "UNKNOWN"; lastSeenAt: string | null; lastSyncAt: string | null; _count: { punches: number } }
-interface Punch { id: string; at: string; employee: string | null; deviceUserId: string | null; device: string | null; source: string; verifyMode: string | null; direction: string | null }
+interface Device {
+  id: string; name: string; mode: "LAN" | "ADMS"; ip: string | null; port: number; serialNumber: string | null; model: string | null; firmware: string | null; platform: string | null; macAddress: string | null; reportedIp: string | null;
+  userCount: number | null; fingerprintCount: number | null; faceCount: number | null; logCount: number | null; userCapacity: number | null; fingerprintCapacity: number | null; logCapacity: number | null;
+  clockDriftSeconds: number | null; usersSyncedAt: string | null; lastError: string | null;
+  status: "ONLINE" | "OFFLINE" | "UNKNOWN"; lastSeenAt: string | null; lastSyncAt: string | null; _count: { punches: number; users: number };
+  commands: { id: string; label: string; status: string; createdAt: string; doneAt: string | null }[];
+}
+interface Punch { id: string; at: string; employee: string | null; deviceUserId: string | null; deviceName: string | null; state: string | null; device: string | null; source: string; verifyMode: string | null; direction: string | null }
+interface UserRow { pin: string; name: string | null; admin: boolean; fingerprints: number; face: boolean; card: string | null; password: boolean; devices: string[]; inDevice: boolean; punches: number; lastPunch: string | null; employee: { id: string; mapId: string; name: string; matricule: string | null } | null; suggestion: string | null }
 
-export function DevicesView({ tz, initialTab, useServerTime: initialServerTime, employees }: { tz: string; initialTab: string; useServerTime: boolean; employees: { id: string; name: string }[] }) {
+export function DevicesView({ tz, initialTab, useServerTime: initialServerTime }: { tz: string; initialTab: string; useServerTime: boolean; employees?: { id: string; name: string }[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const qc = useQueryClient();
-  const [tab, setTab] = useState(initialTab);
+  const [tab, setTab] = useState(initialTab === "maps" ? "users" : initialTab);
+  const [exporting, setExporting] = useState(false);
   const punches = useQuery({ queryKey: ["punches"], queryFn: () => api<{ items: Punch[] }>("/api/punches/latest"), refetchInterval: 20_000 });
-  const devices = useQuery({ queryKey: ["devices"], queryFn: () => api<{ items: Device[]; admsHost: string; admsPort: number }>("/api/devices") });
-  const maps = useQuery({ queryKey: ["maps"], queryFn: () => api<{ maps: { id: string; deviceUserId: string; employee: string }[]; unmapped: { deviceUserId: string; count: number; lastSeen: string | null }[] }>("/api/device-user-maps") });
-  useRealtimeEvent("punch:new", () => { void punches.refetch(); void maps.refetch(); });
+  const devices = useQuery({ queryKey: ["devices"], queryFn: () => api<{ items: Device[]; admsHost: string; admsPort: number }>("/api/devices"), refetchInterval: 15_000 });
+  const users = useQuery({ queryKey: ["device-users"], queryFn: () => api<{ rows: UserRow[]; employees: { id: string; name: string; linked: boolean }[] }>("/api/device-users") });
+  useRealtimeEvent("punch:new", () => { void punches.refetch(); void users.refetch(); });
   useRealtimeEvent("device:status", () => devices.refetch());
-  const refreshAll = () => { void qc.invalidateQueries({ queryKey: ["punches"] }); void qc.invalidateQueries({ queryKey: ["devices"] }); void qc.invalidateQueries({ queryKey: ["maps"] }); };
+  useRealtimeEvent("device:users", () => { void users.refetch(); void devices.refetch(); });
+  const refreshAll = () => { for (const k of ["punches", "devices", "device-users"]) void qc.invalidateQueries({ queryKey: [k] }); };
+  const unlinked = users.data?.rows.filter((r) => !r.employee).length ?? 0;
 
   return (
     <div>
-      <PageHeader title="Pointeuses" subtitle="Pointeuse biométrique — présences automatiques" actions={<Button variant="secondary" onClick={refreshAll}><RefreshCw /> Actualiser</Button>} />
+      <PageHeader title="Pointeuses" subtitle="Pointeuses biométriques : présences, utilisateurs et données de chaque appareil" actions={<><Button variant="secondary" onClick={() => setExporting(true)}><Download /> Exporter les pointages</Button><Button variant="secondary" onClick={refreshAll}><RefreshCw /> Actualiser</Button></>} />
       <Tabs value={tab} onValueChange={(t) => { setTab(t); router.replace(`${pathname}?tab=${t}`, { scroll: false }); }} tabs={[
         { value: "punches", label: "Derniers pointages", icon: <History /> },
         { value: "devices", label: "Pointeuses", icon: <Fingerprint />, count: devices.data?.items.length },
-        { value: "maps", label: "Empreintes → Employés", icon: <Link2 />, count: maps.data?.unmapped.length || undefined },
+        { value: "users", label: "Utilisateurs des pointeuses", icon: <Users />, count: unlinked || undefined },
       ]}>
         <div className="mt-5">
           <TabPanel value="punches">
@@ -40,18 +50,25 @@ export function DevicesView({ tz, initialTab, useServerTime: initialServerTime, 
                 <EmptyState icon={<Fingerprint />} title="Aucun pointage reçu pour l'instant." action={<Button onClick={() => setTab("devices")}>Ajouter une pointeuse</Button>}>Dès qu'une pointeuse envoie des données, les pointages apparaissent ici en temps réel.</EmptyState>
               ) : (
                 <div className="scrollbar-thin max-h-[70vh] overflow-auto">
-                  <table className="w-full min-w-[720px]">
-                    <thead><tr>{["Heure", "Employé", "Pointeuse", "Type", "Mode de vérification"].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
+                  <table className="w-full min-w-[820px]">
+                    <thead><tr>{["Heure", "Salarié", "Pointeuse", "Type", "Vérification"].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
                     <tbody>
                       {punches.data.items.map((p) => {
                         const dt = frDateTime(p.at, tz);
                         return (
                           <tr key={p.id} className="hover:bg-surface-2/50">
                             <td className={td}><div className="font-mono tabular">{dt.time}</div><div className="text-xs text-muted">{dt.date}</div></td>
-                            <td className={td}>{p.employee ? <div className="flex items-center gap-2.5"><Avatar name={p.employee} size={28} />{p.employee}</div> : <button onClick={() => setTab("maps")} className="cursor-pointer text-[#9a6a00] underline-offset-2 hover:underline dark:text-warning">ID inconnu #{p.deviceUserId}</button>}</td>
-                            <td className={cn(td, "text-[13px]")}>{p.device ?? (p.source === "CORRECTION" ? "Correction RH" : p.source === "TABLET" ? "Tablette" : "—")}</td>
-                            <td className={td}>{p.direction ? <StatusPill tone={p.direction === "IN" ? "success" : "neutral"}>{p.direction === "IN" ? "Entrée" : "Sortie"}</StatusPill> : <span className="text-muted">Auto</span>}</td>
-                            <td className={cn(td, "text-[13px] text-muted")}>{p.verifyMode ?? "—"}</td>
+                            <td className={td}>
+                              {p.employee ? <div className="flex items-center gap-2.5"><Avatar name={p.employee} size={28} />{p.employee}</div> : (
+                                <button onClick={() => setTab("users")} className="cursor-pointer text-left">
+                                  <div className="font-medium">{p.deviceName ?? `ID #${p.deviceUserId}`}</div>
+                                  <div className="text-xs text-[#9a6a00] underline-offset-2 hover:underline dark:text-warning">ID #{p.deviceUserId} · non associé à un salarié</div>
+                                </button>
+                              )}
+                            </td>
+                            <td className={cn(td, "text-[13px]")}>{p.device ?? (p.source === "CORRECTION" ? "Correction RH" : p.source === "TABLET" ? "Tablette" : "")}</td>
+                            <td className={td}>{p.state || p.direction ? <StatusPill tone={p.direction === "IN" ? "success" : p.direction === "OUT" ? "neutral" : "info"}>{p.state ?? (p.direction === "IN" ? "Entrée" : "Sortie")}</StatusPill> : <span className="text-muted">Auto</span>}</td>
+                            <td className={cn(td, "text-[13px] text-muted")}>{p.verifyMode ?? ""}</td>
                           </tr>
                         );
                       })}
@@ -62,21 +79,46 @@ export function DevicesView({ tz, initialTab, useServerTime: initialServerTime, 
             </Card>
           </TabPanel>
           <TabPanel value="devices">
-            <DevicesTab data={devices.data} loading={devices.isLoading} useServerTime={initialServerTime} onChange={() => devices.refetch()} tz={tz} />
+            <DevicesTab data={devices.data} loading={devices.isLoading} useServerTime={initialServerTime} onChange={() => { void devices.refetch(); void users.refetch(); void punches.refetch(); }} tz={tz} />
           </TabPanel>
-          <TabPanel value="maps">
-            <MapsTab data={maps.data} employees={employees} onChange={() => { void maps.refetch(); void punches.refetch(); }} tz={tz} />
+          <TabPanel value="users">
+            <UsersTab data={users.data} loading={users.isLoading} tz={tz} onChange={() => { void users.refetch(); void punches.refetch(); }} onSyncAll={async () => {
+              const list = devices.data?.items ?? [];
+              if (!list.length) { toast.error("Ajoutez d'abord une pointeuse."); return; }
+              let ok = 0;
+              for (const d of list) { try { await api(`/api/devices/${d.id}/sync`, { body: {}, silent: true }); ok++; } catch {} }
+              toast.success(ok ? `Lecture demandée à ${ok} pointeuse(s). Les pointeuses ADMS répondent en quelques secondes.` : "Aucune pointeuse n'a répondu.");
+              void users.refetch(); void devices.refetch();
+            }} />
           </TabPanel>
         </div>
       </Tabs>
+      {exporting && <ExportModal onClose={() => setExporting(false)} />}
     </div>
+  );
+}
+
+function ExportModal({ onClose }: { onClose: () => void }) {
+  const today = new Date();
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const [from, setFrom] = useState(iso(new Date(today.getFullYear(), today.getMonth(), 1)));
+  const [to, setTo] = useState(iso(today));
+  const [busy, setBusy] = useState(false);
+  return (
+    <Modal open onOpenChange={(o) => !o && onClose()} size="sm" icon={<Download />} title="Exporter les pointages" subtitle="Fichier Excel : date, heure, salarié, matricule, service, centre, ID et nom sur la pointeuse, appareil, type (entrée, sortie, pause…) et mode de vérification."
+      footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button loading={busy} disabled={!from || !to || from > to} onClick={async () => { setBusy(true); try { await download(`/api/punches/export?from=${from}&to=${to}`, `pointages-${from}-au-${to}.xlsx`); onClose(); } catch {} setBusy(false); }}><Download /> Télécharger</Button></>}>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Du" htmlFor="ef"><Input id="ef" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
+        <Field label="Au" htmlFor="et"><Input id="et" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+      </div>
+    </Modal>
   );
 }
 
 function DevicesTab({ data, loading, useServerTime, onChange, tz }: { data?: { items: Device[]; admsHost: string; admsPort: number }; loading: boolean; useServerTime: boolean; onChange: () => void; tz: string }) {
   const [serverTime, setServerTime] = useState(useServerTime);
   const [form, setForm] = useState({ name: "", ip: "", port: 4370, password: "" });
-  const [tested, setTested] = useState<{ serialNumber: string | null; model: string | null; firmware: string | null; userCount: number | null } | null>(null);
+  const [tested, setTested] = useState<{ serialNumber: string | null; model: string | null; firmware: string | null; userCount: number | null; logCount?: number | null; fingerprintCount?: number | null; faceCount?: number | null } | null>(null);
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [adv, setAdv] = useState(false);
@@ -97,7 +139,7 @@ function DevicesTab({ data, loading, useServerTime, onChange, tz }: { data?: { i
   async function save() {
     setSaving(true);
     try {
-      await api("/api/devices", { body: { mode: "LAN", name: form.name || `Pointeuse ${form.ip}`, ip: form.ip, port: form.port, commPassword: form.password || null, ...tested } });
+      await api("/api/devices", { body: { mode: "LAN", name: form.name || `Pointeuse ${form.ip}`, ip: form.ip, port: form.port, commPassword: form.password || null, serialNumber: tested?.serialNumber, model: tested?.model, firmware: tested?.firmware, userCount: tested?.userCount } });
       toast.success("Pointeuse enregistrée. Les pointages seront récupérés automatiquement.");
       setForm({ name: "", ip: "", port: 4370, password: "" });
       setTested(null);
@@ -113,7 +155,14 @@ function DevicesTab({ data, loading, useServerTime, onChange, tz }: { data?: { i
       onChange();
     } catch {}
   }
-  async function action(d: Device, kind: "sync" | "time" | "rename" | "delete") {
+  async function action(d: Device, kind: "sync" | "full" | "time" | "rename" | "delete" | "users" | "info" | "reboot") {
+    if (kind === "reboot" && !(await confirmDialog({ title: `Redémarrer « ${d.name} » ?`, message: "La pointeuse sera indisponible une minute environ.", confirmLabel: "Redémarrer" }))) return;
+    if (kind === "users" || kind === "info" || kind === "reboot") {
+      setBusy(d.id + kind);
+      try { const r = await api<{ label: string }>(`/api/devices/${d.id}/command`, { body: { kind } }); toast.success(`Commande envoyée : ${r.label}.`, { description: "La pointeuse l'exécute à sa prochaine connexion (quelques secondes)." }); onChange(); } catch {}
+      setBusy(null);
+      return;
+    }
     if (kind === "delete" && !(await confirmDialog({ title: `Supprimer « ${d.name} » ?`, message: "Les pointages déjà reçus sont conservés.", danger: true, confirmLabel: "Supprimer" }))) return;
     if (kind === "rename") {
       const name = prompt("Nouveau nom de la pointeuse", d.name)?.trim();
@@ -124,9 +173,10 @@ function DevicesTab({ data, loading, useServerTime, onChange, tz }: { data?: { i
     }
     setBusy(d.id + kind);
     try {
-      if (kind === "sync") {
-        const r = await api<{ received: number; created: number }>(`/api/devices/${d.id}/sync`, { body: {} });
-        toast.success(`${r.created} nouveau(x) pointage(s) sur ${r.received} lu(s).`);
+      if (kind === "sync" || kind === "full") {
+        const r = await api<{ received?: number; created?: number; users?: number; linked?: number; queued?: boolean }>(`/api/devices/${d.id}/sync`, { body: { full: kind === "full" } });
+        if (r.queued) toast.success(kind === "full" ? "Demande envoyée : la pointeuse va renvoyer tout son historique et ses utilisateurs." : "Demande envoyée : la pointeuse va envoyer ses utilisateurs et ses nouvelles données.");
+        else toast.success(`${r.created} nouveau(x) pointage(s) sur ${r.received} lu(s) · ${r.users} utilisateur(s) lus${r.linked ? ` · ${r.linked} associé(s) automatiquement` : ""}.`);
       } else if (kind === "time") {
         await api(`/api/devices/${d.id}/time`, { body: {} });
         toast.success("Heure de la pointeuse réglée sur l'heure du serveur.");
@@ -157,9 +207,12 @@ function DevicesTab({ data, loading, useServerTime, onChange, tz }: { data?: { i
         {tested && (
           <div className="mx-5 mb-4 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-[12px] border border-success/30 bg-success-100/50 px-4 py-3 text-sm animate-fade-in">
             <span className="inline-flex items-center gap-2 font-medium text-success"><CheckCircle2 className="size-4" /> Connexion réussie</span>
-            <span>SN : <b className="font-mono">{tested.serialNumber ?? "—"}</b></span>
-            <span>Modèle : <b>{tested.model ?? "—"}</b></span>
-            <span>Utilisateurs : <b className="tabular">{tested.userCount ?? "—"}</b></span>
+            <span>SN : <b className="font-mono">{tested.serialNumber ?? ""}</b></span>
+            <span>Modèle : <b>{tested.model ?? ""}</b></span>
+            <span>Utilisateurs : <b className="tabular">{tested.userCount ?? ""}</b></span>
+            {tested.fingerprintCount != null && <span>Empreintes : <b className="tabular">{tested.fingerprintCount}</b></span>}
+            {tested.faceCount != null && tested.faceCount > 0 && <span>Visages : <b className="tabular">{tested.faceCount}</b></span>}
+            {tested.logCount != null && <span>Pointages stockés : <b className="tabular">{tested.logCount}</b></span>}
           </div>
         )}
         <div className="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-3">
@@ -188,21 +241,37 @@ function DevicesTab({ data, loading, useServerTime, onChange, tz }: { data?: { i
                   <Menu>
                     <MenuTrigger asChild><Button size="icon-sm" variant="ghost" aria-label="Actions"><MoreHorizontal /></Button></MenuTrigger>
                     <MenuContent>
-                      {d.mode === "LAN" && <MenuItem icon={<RefreshCw />} onSelect={() => action(d, "sync")}>Synchroniser</MenuItem>}
+                      <MenuItem icon={<RefreshCw />} onSelect={() => action(d, "sync")}>Synchroniser (utilisateurs + pointages)</MenuItem>
+                      <MenuItem icon={<DownloadCloud />} onSelect={() => action(d, "full")}>Récupérer tout l'historique</MenuItem>
+                      {d.mode === "ADMS" && <MenuItem icon={<Users />} onSelect={() => action(d, "users")}>Récupérer les utilisateurs</MenuItem>}
+                      {d.mode === "ADMS" && <MenuItem icon={<Info />} onSelect={() => action(d, "info")}>Lire les informations</MenuItem>}
                       {d.mode === "LAN" && <MenuItem icon={<Clock />} onSelect={() => action(d, "time")}>Régler l'heure</MenuItem>}
+                      {d.mode === "ADMS" && <MenuItem icon={<Power />} onSelect={() => action(d, "reboot")}>Redémarrer</MenuItem>}
                       <MenuItem icon={<Pencil />} onSelect={() => action(d, "rename")}>Renommer</MenuItem>
                       <MenuSeparator />
                       <MenuItem icon={<Trash2 />} danger onSelect={() => action(d, "delete")}>Supprimer</MenuItem>
                     </MenuContent>
                   </Menu>
                 </div>
+                <DeviceStats d={d} />
                 <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[13px]">
-                  <div><dt className="text-xs text-muted">N° de série</dt><dd className="font-mono">{d.serialNumber ?? "—"}</dd></div>
-                  <div><dt className="text-xs text-muted">{d.mode === "LAN" ? "Adresse" : "Modèle"}</dt><dd className="font-mono">{d.mode === "LAN" ? `${d.ip}:${d.port}` : (d.model ?? "—")}</dd></div>
+                  <div><dt className="text-xs text-muted">N° de série</dt><dd className="truncate font-mono">{d.serialNumber ?? ""}</dd></div>
+                  <div><dt className="text-xs text-muted">Adresse</dt><dd className="truncate font-mono">{d.mode === "LAN" ? `${d.ip}:${d.port}` : (d.reportedIp ?? "")}</dd></div>
+                  <div><dt className="text-xs text-muted">Modèle</dt><dd className="truncate">{d.model ?? ""}</dd></div>
+                  <div><dt className="text-xs text-muted">Firmware</dt><dd className="truncate">{d.firmware ?? ""}</dd></div>
+                  {d.macAddress && <div><dt className="text-xs text-muted">MAC</dt><dd className="truncate font-mono">{d.macAddress}</dd></div>}
+                  {d.platform && <div><dt className="text-xs text-muted">Plateforme</dt><dd className="truncate">{d.platform}</dd></div>}
                   <div><dt className="text-xs text-muted">Vue</dt><dd>{relative(d.lastSeenAt)}</dd></div>
                   <div><dt className="text-xs text-muted">Dernière synchro</dt><dd>{relative(d.lastSyncAt)}</dd></div>
                 </dl>
-                {d.mode === "LAN" && <Button size="sm" variant="secondary" className="mt-4 w-full" onClick={() => action(d, "sync")} loading={busy === d.id + "sync"}><RefreshCw /> Synchroniser</Button>}
+                {d.clockDriftSeconds != null && Math.abs(d.clockDriftSeconds) >= 60 && (
+                  <div className="mt-3 flex items-center gap-2 rounded-[10px] bg-warning-100 px-3 py-2 text-xs text-[#9a6a00] dark:text-warning"><Clock className="size-3.5 shrink-0" /> L&apos;horloge de la pointeuse a {Math.round(Math.abs(d.clockDriftSeconds) / 60)} min {d.clockDriftSeconds > 0 ? "d'avance" : "de retard"}.{d.mode === "LAN" && <button className="ml-auto cursor-pointer font-semibold underline" onClick={() => action(d, "time")}>Régler</button>}</div>
+                )}
+                {d.status === "OFFLINE" && d.lastError && <div className="mt-3 rounded-[10px] bg-danger-100 px-3 py-2 text-xs text-danger">{d.lastError}</div>}
+                {d.mode === "ADMS" && d.commands.some((c) => c.status === "PENDING" || c.status === "SENT") && (
+                  <div className="mt-3 rounded-[10px] bg-info-100 px-3 py-2 text-xs text-info">En attente de la pointeuse : {d.commands.filter((c) => c.status === "PENDING" || c.status === "SENT").map((c) => c.label.toLowerCase()).join(", ")}.</div>
+                )}
+                <Button size="sm" variant="secondary" className="mt-4 w-full" onClick={() => action(d, "sync")} loading={busy === d.id + "sync"}><RefreshCw /> Synchroniser</Button>
               </Card>
             ))}
           </div>
@@ -225,7 +294,7 @@ function DevicesTab({ data, loading, useServerTime, onChange, tz }: { data?: { i
             <div className="rounded-[12px] bg-surface-2 p-4 text-[13px] leading-relaxed">
               Sur la pointeuse : <b>Menu → Communication → Serveur Cloud (ADMS)</b>, puis saisissez
               <div className="mt-2 flex flex-wrap gap-3">
-                <CopyBox label="Adresse du serveur" value={data?.admsHost ?? "—"} />
+                <CopyBox label="Adresse du serveur" value={data?.admsHost ?? ""} />
                 <CopyBox label="Port" value={String(data?.admsPort ?? 3000)} />
               </div>
               <p className="mt-2 text-xs text-muted">La pointeuse enverra ses pointages vers <span className="font-mono">/iclock/cdata</span>. Seuls les numéros de série enregistrés ici sont acceptés.</p>
@@ -245,60 +314,143 @@ function CopyBox({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MapsTab({ data, employees, onChange, tz }: { data?: { maps: { id: string; deviceUserId: string; employee: string }[]; unmapped: { deviceUserId: string; count: number; lastSeen: string | null }[] }; employees: { id: string; name: string }[]; onChange: () => void; tz: string }) {
-  const [employeeId, setEmployeeId] = useState("");
-  const [deviceUserId, setDeviceUserId] = useState("");
-  const [saving, setSaving] = useState(false);
-  async function link(uid = deviceUserId, emp = employeeId) {
-    setSaving(true);
+/** Usage of the device memory: users, fingerprints, faces, stored clock-ins. */
+function DeviceStats({ d }: { d: Device }) {
+  const items: [React.ReactNode, string, number | null, number | null][] = [
+    [<Users key="u" />, "Utilisateurs", d.userCount ?? (d._count.users || null), d.userCapacity],
+    [<Fingerprint key="f" />, "Empreintes", d.fingerprintCount, d.fingerprintCapacity],
+    [<ScanFace key="v" />, "Visages", d.faceCount, null],
+    [<History key="l" />, "Pointages stockés", d.logCount, d.logCapacity],
+  ];
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-2">
+      {items.map(([icon, label, v, cap]) => (
+        <div key={label} className="rounded-[12px] bg-surface-2 px-3 py-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted [&_svg]:size-3.5">{icon}{label}</div>
+          <div className="mt-0.5 font-display text-base font-semibold tabular">{v ?? <span className="text-sm font-normal text-muted">Non lu</span>}{cap ? <span className="text-xs font-normal text-muted"> / {cap}</span> : null}</div>
+          {cap && v != null ? <div className="mt-1 h-1 overflow-hidden rounded-full bg-border"><div className={cn("h-full rounded-full", v / cap > 0.9 ? "bg-danger" : v / cap > 0.7 ? "bg-warning" : "bg-brand-500")} style={{ width: `${Math.min(100, (v / cap) * 100)}%` }} /></div> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function UsersTab({ data, loading, tz, onChange, onSyncAll }: { data?: { rows: UserRow[]; employees: { id: string; name: string; linked: boolean }[] }; loading: boolean; tz: string; onChange: () => void; onSyncAll: () => Promise<void> }) {
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<"all" | "unlinked" | "linked">("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState<string | null>(null);
+  const rows = data?.rows ?? [];
+  const empName = new Map((data?.employees ?? []).map((e) => [e.id, e.name]));
+  const needle = q.trim().toLowerCase();
+  const list = rows.filter((r) => (filter === "all" || (filter === "linked" ? !!r.employee : !r.employee)) && (!needle || `${r.pin} ${r.name ?? ""} ${r.employee?.name ?? ""}`.toLowerCase().includes(needle)));
+  const unlinked = rows.filter((r) => !r.employee);
+  const withSuggestion = unlinked.filter((r) => r.suggestion);
+  const creatable = unlinked.filter((r) => r.name && !r.suggestion);
+  const target = (subset: UserRow[]) => (selected.size ? subset.filter((r) => selected.has(r.pin)) : subset);
+
+  async function run(key: string, body: object, msg: (r: { linked?: number; created?: number; skipped?: number }) => string) {
+    setBusy(key);
+    try { const r = await api<{ linked?: number; created?: number; skipped?: number }>("/api/device-users", { body }); toast.success(msg(r)); setSelected(new Set()); onChange(); } catch {}
+    setBusy(null);
+  }
+  async function link(pin: string, employeeId: string) {
     try {
-      const r = await api<{ backfilled: number; warning: string | null }>("/api/device-user-maps", { body: { deviceUserId: uid, employeeId: emp } });
-      toast.success(`ID ${uid} associé.${r.backfilled ? ` ${r.backfilled} pointage(s) passé(s) rattaché(s) et présences recalculées.` : ""}`, { description: r.warning ?? undefined });
-      setDeviceUserId(""); setEmployeeId("");
+      const r = await api<{ backfilled: number; warning: string | null }>("/api/device-user-maps", { body: { deviceUserId: pin, employeeId } });
+      toast.success(`ID ${pin} associé.${r.backfilled ? ` ${r.backfilled} pointage(s) passé(s) rattaché(s).` : ""}`, { description: r.warning ?? undefined });
       onChange();
     } catch {}
-    setSaving(false);
   }
-  async function unlink(id: string) {
-    if (!(await confirmDialog({ title: "Retirer cette association ?", message: "Les futurs pointages de cet ID ne seront plus rattachés au salarié.", confirmLabel: "Retirer" }))) return;
-    await api(`/api/device-user-maps?id=${id}`, { method: "DELETE" });
+  async function unlink(r: UserRow) {
+    if (!(await confirmDialog({ title: `Dissocier l'ID ${r.pin} ?`, message: "Les futurs pointages de cet ID ne seront plus rattachés au salarié.", confirmLabel: "Dissocier" }))) return;
+    await api(`/api/device-user-maps?id=${r.employee!.mapId}`, { method: "DELETE" });
     onChange();
   }
+
   return (
-    <div className="space-y-5">
-      <Card>
-        <CardHeader title="Associer une empreinte" subtitle="Associez chaque ID d'empreinte détecté à un employé. Les pointages déjà reçus sont alors rattachés à ses présences." />
-        <div className="flex flex-wrap items-end gap-3 px-5 pb-5">
-          <Select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-64" aria-label="Employé"><option value="">Choisir un employé…</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</Select>
-          <Input value={deviceUserId} onChange={(e) => setDeviceUserId(e.target.value)} placeholder="ID empreinte (ex. 5)" className="w-48 font-mono" aria-label="ID empreinte" />
-          <Button onClick={() => link()} loading={saving} disabled={!employeeId || !deviceUserId}><Link2 /> Associer</Button>
+    <div className="space-y-4">
+      <Card className="p-5">
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold">Les personnes enregistrées dans vos pointeuses</h3>
+            <p className="mt-1 text-sm text-muted">Pour chaque ID : le nom saisi sur la pointeuse, ses moyens d&apos;identification et ses pointages. Associez chaque ID à un salarié pour que ses pointages alimentent ses présences et sa paie.</p>
+          </div>
+          <Button variant="secondary" loading={busy === "sync"} onClick={async () => { setBusy("sync"); await onSyncAll(); setBusy(null); }}><RefreshCw /> Lire les pointeuses</Button>
         </div>
-        {!!data?.unmapped.length && (
-          <div className="border-t border-border">
-            <div className="px-5 pt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">IDs non associés</div>
-            <ul className="divide-y divide-border">
-              {data.unmapped.map((u) => (
-                <li key={u.deviceUserId} className="flex flex-wrap items-center gap-3 px-5 py-3">
-                  <span className="rounded-md bg-warning-100 px-2 py-0.5 font-mono text-sm font-semibold text-[#9a6a00] dark:text-warning">#{u.deviceUserId}</span>
-                  <span className="text-sm text-muted">{u.count} pointage{u.count > 1 ? "s" : ""} · vu {u.lastSeen ? `${frDateTime(u.lastSeen, tz).date} ${timeIn(u.lastSeen, tz)}` : "—"}</span>
-                  <Select className="ml-auto h-9 w-60" defaultValue="" onChange={(e) => e.target.value && link(u.deviceUserId, e.target.value)} aria-label={`Associer l'ID ${u.deviceUserId}`}><option value="">Associer à…</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</Select>
-                </li>
-              ))}
-            </ul>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-[12px] bg-surface-2 px-4 py-3"><div className="text-xs text-muted">IDs connus</div><div className="font-display text-xl font-semibold tabular">{rows.length}</div></div>
+          <div className="rounded-[12px] bg-success-100 px-4 py-3"><div className="text-xs text-muted">Associés à un salarié</div><div className="font-display text-xl font-semibold tabular text-success">{rows.length - unlinked.length}</div></div>
+          <div className={cn("rounded-[12px] px-4 py-3", unlinked.length ? "bg-warning-100" : "bg-surface-2")}><div className="text-xs text-muted">À associer</div><div className="font-display text-xl font-semibold tabular">{unlinked.length}</div></div>
+        </div>
+        {unlinked.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => run("auto", { action: "autolink" }, (r) => r.linked ? `${r.linked} ID(s) associé(s) automatiquement (nom ou matricule identique).` : "Aucune correspondance exacte trouvée.")} loading={busy === "auto"}><Sparkles /> Associer automatiquement</Button>
+            {withSuggestion.length > 0 && <Button size="sm" variant="secondary" onClick={() => run("accept", { action: "accept", pins: target(withSuggestion).map((r) => r.pin) }, (r) => `${r.linked ?? 0} suggestion(s) acceptée(s).`)} loading={busy === "accept"}><CheckCircle2 /> Accepter les suggestions ({target(withSuggestion).length})</Button>}
+            {creatable.length > 0 && <Button size="sm" variant="secondary" onClick={async () => {
+              const t = target(creatable);
+              if (!(await confirmDialog({ title: `Créer ${t.length} salarié(s) ?`, message: "Un salarié est créé pour chaque ID non associé, avec le nom enregistré sur la pointeuse et l'ID comme matricule. Complétez ensuite leur e-mail, service et contrat dans leur fiche.", confirmLabel: "Créer" }))) return;
+              await run("create", { action: "create", pins: t.map((r) => r.pin) }, (r) => `${r.created ?? 0} salarié(s) créé(s) et associé(s).${r.skipped ? ` ${r.skipped} ID(s) sans nom ignoré(s).` : ""}`);
+            }} loading={busy === "create"}><UserPlus /> Créer les salariés manquants ({target(creatable).length})</Button>}
           </div>
         )}
       </Card>
+
       <Card>
-        <CardHeader title="Associations" subtitle={`${data?.maps.length ?? 0} empreinte(s) associée(s)`} />
-        <div className="grid gap-2 px-5 pb-5 sm:grid-cols-2 lg:grid-cols-3">
-          {data?.maps.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 rounded-[12px] border border-border px-3 py-2">
-              <span className="rounded-md bg-brand-100 px-2 py-0.5 font-mono text-xs font-semibold text-brand-700 dark:text-brand-400">#{m.deviceUserId}</span>
-              <span className="min-w-0 flex-1 truncate text-sm">{m.employee}</span>
-              <button onClick={() => unlink(m.id)} className="grid size-7 cursor-pointer place-items-center rounded-md text-muted hover:bg-danger-100 hover:text-danger" aria-label={`Retirer l'association ${m.deviceUserId}`}><X className="size-3.5" /></button>
-            </div>
-          ))}
+        <div className="flex flex-wrap items-center gap-2.5 p-4">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un ID ou un nom…" className="pl-9" aria-label="Rechercher" />
+          </div>
+          <Segmented value={filter} onChange={(v) => { setFilter(v); setSelected(new Set()); }} options={[{ value: "all", label: "Tous", count: rows.length }, { value: "unlinked", label: "À associer", count: unlinked.length }, { value: "linked", label: "Associés", count: rows.length - unlinked.length }]} />
         </div>
+        {loading ? <div className="space-y-2 p-4">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-12" />)}</div> : !list.length ? (
+          <EmptyState icon={<Users />} title={rows.length ? "Aucun résultat" : "Aucun utilisateur lu pour l'instant"} action={!rows.length ? <Button onClick={() => void onSyncAll()}><RefreshCw /> Lire les pointeuses</Button> : undefined}>{rows.length ? "Essayez un autre filtre." : "Synchronisez vos pointeuses : les noms et les IDs enregistrés sur chaque appareil apparaîtront ici."}</EmptyState>
+        ) : (
+          <div className="scrollbar-thin overflow-x-auto">
+            <table className="w-full min-w-[980px]">
+              <thead><tr>
+                <th className={cn(th, "w-10 pr-0")}><Checkbox checked={list.length > 0 && list.every((r) => selected.has(r.pin))} onChange={() => setSelected(list.every((r) => selected.has(r.pin)) ? new Set() : new Set(list.map((r) => r.pin)))} aria-label="Tout sélectionner" /></th>
+                {["ID", "Nom sur la pointeuse", "Identification", "Pointages", "Salarié associé"].map((h) => <th key={h} className={th}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {list.map((r) => (
+                  <tr key={r.pin} className={cn("hover:bg-surface-2/50", selected.has(r.pin) && "bg-brand-100/40")}>
+                    <td className={cn(td, "pr-0")}><Checkbox checked={selected.has(r.pin)} onChange={() => setSelected((s) => { const n = new Set(s); if (n.has(r.pin)) n.delete(r.pin); else n.add(r.pin); return n; })} aria-label={`Sélectionner l'ID ${r.pin}`} /></td>
+                    <td className={td}><span className={cn("rounded-md px-2 py-0.5 font-mono text-sm font-semibold", r.employee ? "bg-brand-100 text-brand-700 dark:text-brand-400" : "bg-warning-100 text-[#9a6a00] dark:text-warning")}>#{r.pin}</span></td>
+                    <td className={td}>
+                      <div className="font-medium">{r.name ?? <span className="text-muted">Sans nom</span>}</div>
+                      <div className="text-xs text-muted">{r.inDevice ? r.devices.join(", ") : "Vu uniquement dans les pointages"}</div>
+                    </td>
+                    <td className={td}>
+                      <div className="flex flex-wrap gap-1">
+                        {r.fingerprints > 0 && <StatusPill tone="brand"><Fingerprint className="size-3" /> {r.fingerprints} empreinte{r.fingerprints > 1 ? "s" : ""}</StatusPill>}
+                        {r.face && <StatusPill tone="info"><ScanFace className="size-3" /> Visage</StatusPill>}
+                        {r.card && <StatusPill><CreditCard className="size-3" /> Carte {r.card}</StatusPill>}
+                        {r.password && <StatusPill><KeyRound className="size-3" /> Code</StatusPill>}
+                        {r.admin && <StatusPill tone="accent"><ShieldCheck className="size-3" /> Admin</StatusPill>}
+                        {!r.fingerprints && !r.face && !r.card && !r.password && !r.admin && null}
+                      </div>
+                    </td>
+                    <td className={td}><div className="tabular">{r.punches}</div><div className="text-xs text-muted">{r.lastPunch ? `dernier : ${frDateTime(r.lastPunch, tz).date} ${timeIn(r.lastPunch, tz)}` : "aucun"}</div></td>
+                    <td className={td}>
+                      {r.employee ? (
+                        <div className="flex items-center gap-2"><Avatar name={r.employee.name} size={26} /><span className="text-sm font-medium">{r.employee.name}</span><button onClick={() => unlink(r)} className="ml-1 grid size-7 cursor-pointer place-items-center rounded-full text-muted hover:bg-danger-100 hover:text-danger" aria-label={`Dissocier l'ID ${r.pin}`}><X className="size-3.5" /></button></div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {r.suggestion && <Button size="sm" variant="subtle" onClick={() => link(r.pin, r.suggestion!)}><Link2 /> {empName.get(r.suggestion)}</Button>}
+                          <Select className="h-8 w-48 text-[13px]" defaultValue="" onChange={(e) => e.target.value && link(r.pin, e.target.value)} aria-label={`Associer l'ID ${r.pin}`}>
+                            <option value="">{r.suggestion ? "Autre salarié…" : "Associer à…"}</option>
+                            {data?.employees.filter((e) => !e.linked).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                          </Select>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );
