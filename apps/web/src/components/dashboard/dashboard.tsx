@@ -206,7 +206,7 @@ export function Dashboard({ initial, base, firstName, space }: { initial: Dashbo
       {space === "rh" && (
         <Card className="overflow-hidden">
           <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-            <div className="grid size-12 shrink-0 place-items-center rounded-[14px] bg-accent-100 text-[#9b5d0b] dark:text-accent-500">
+            <div className="grid size-12 shrink-0 place-items-center rounded-[14px] bg-accent-100 text-accent-700">
               <Wallet className="size-6" strokeWidth={1.75} />
             </div>
             {data.payroll ? (

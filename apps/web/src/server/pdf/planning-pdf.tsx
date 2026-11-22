@@ -7,8 +7,8 @@ import type { PlanningData } from "../planning";
 const DAYS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const s = StyleSheet.create({
   page: { padding: 22, fontSize: 7.5, fontFamily: "Helvetica", color: "#14201F" },
-  head: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10, borderBottom: "2pt solid #0B2422", paddingBottom: 6 },
-  brand: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#0B2422" },
+  head: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10, borderBottom: "2pt solid #0A2342", paddingBottom: 6 },
+  brand: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#0A2342" },
   row: { flexDirection: "row", borderBottom: "0.5pt solid #E6E8E3", minHeight: 18, alignItems: "stretch" },
   name: { width: 120, padding: 3, justifyContent: "center" },
   cell: { flex: 1, padding: 2, borderLeft: "0.5pt solid #E6E8E3", justifyContent: "center", alignItems: "center" },

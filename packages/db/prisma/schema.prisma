@@ -189,6 +189,10 @@ model Organization {
   dailyEmails             Boolean   @default(false)
   persistentSessions      Boolean   @default(true)
   tabletRules             Json?
+  /// Ignore a repeated clock-in of the same person within this many minutes (0 = off)
+  punchDedupMinutes       Int       @default(10)
+  /// Features switched on/off by the platform console, on top of the plan: { "messaging": false, "employee_accounts": true }
+  featureOverrides        Json?
   /// Platform console (app owner): lifecycle of the customer account
   status                  OrgStatus @default(ACTIVE)
   isDemo                  Boolean   @default(false)
@@ -753,6 +757,8 @@ model Punch {
   employeeId     String?
   employee       Employee?    @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   timestamp      DateTime
+  /// Time recorded by the clock itself (never replaced by the server time): used to recognise a clock-in already received.
+  deviceTime     DateTime?
   receivedAt     DateTime     @default(now())
   source         PunchSource  @default(DEVICE)
   verifyMode     String?
@@ -765,7 +771,7 @@ model Punch {
   createdById    String?
   rawPayload     Json?
 
-  @@unique([deviceId, deviceUserId, timestamp])
+  @@unique([deviceId, deviceUserId, deviceTime])
   @@index([organizationId, timestamp])
   @@index([employeeId, timestamp])
 }
@@ -789,6 +795,9 @@ model AttendanceDay {
   status            AttendanceStatus @default(OFF)
   issues            String[]
   justified         Boolean?
+  /// Reason of an absence set by RH (SICK, WORK_ACCIDENT, LEAVE, AUTHORIZED, TRAINING, UNJUSTIFIED, OTHER) and a free note
+  absenceReason     String?
+  absenceNote       String?
   validatedById     String?
   validatedAt       DateTime?
   corrections       Json?
@@ -1093,4 +1102,11 @@ model AuditLog {
   createdAt      DateTime      @default(now())
 
   @@index([organizationId, createdAt])
+}
+
+/// Server-wide settings generated at runtime (e.g. Web Push VAPID keys).
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }

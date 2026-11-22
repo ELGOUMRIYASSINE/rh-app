@@ -286,7 +286,7 @@ export function PlanningView({ today, title = "Planning" }: { today: string; tit
             <div className="min-w-[180px] text-center font-display text-[15px] font-semibold">{label}</div>
             <Button size="icon" variant="ghost" onClick={() => nav(1)} aria-label="Période suivante"><ChevronRight /></Button>
           </div>
-          {view === "week" && <span className="rounded-full bg-accent-100 px-2.5 py-0.5 font-mono text-xs font-semibold text-[#9b5d0b] dark:text-accent-500">S{isoWeek(from).week}</span>}
+          {view === "week" && <span className="rounded-full bg-accent-100 px-2.5 py-0.5 font-mono text-xs font-semibold text-accent-700">S{isoWeek(from).week}</span>}
           <Button size="sm" variant="secondary" onClick={() => setAnchor(today)}>Aujourd'hui</Button>
           <Segmented size="sm" value={view} onChange={(v) => { setView(v); setSelected(new Set()); }} options={[{ value: "week", label: "Semaine" }, { value: "month", label: "Mois" }]} />
           <div className="ml-auto flex items-center gap-1">

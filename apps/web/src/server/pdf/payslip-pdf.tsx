@@ -13,12 +13,12 @@ const CONTRACT: Record<string, string> = { CDI: "CDI", CDD: "CDD", INTERIM: "Int
 
 const s = StyleSheet.create({
   page: { padding: 28, fontSize: 8.5, fontFamily: "Helvetica", color: "#14201F" },
-  band: { flexDirection: "row", justifyContent: "space-between", backgroundColor: "#0B2422", color: "white", padding: 12, borderRadius: 6 },
+  band: { flexDirection: "row", justifyContent: "space-between", backgroundColor: "#0A2342", color: "white", padding: 12, borderRadius: 6 },
   h1: { fontSize: 14, fontFamily: "Helvetica-Bold" },
   box: { border: "0.7pt solid #E6E8E3", borderRadius: 5, padding: 8, flex: 1 },
   label: { color: "#66736F", fontSize: 7 },
   row: { flexDirection: "row", borderBottom: "0.5pt solid #E6E8E3", paddingVertical: 3.5 },
-  th: { flexDirection: "row", backgroundColor: "#F2F4F1", paddingVertical: 4, fontFamily: "Helvetica-Bold", fontSize: 7.5, borderBottom: "0.7pt solid #0B2422" },
+  th: { flexDirection: "row", backgroundColor: "#F2F4F1", paddingVertical: 4, fontFamily: "Helvetica-Bold", fontSize: 7.5, borderBottom: "0.7pt solid #0A2342" },
   c1: { width: 34, paddingLeft: 4 }, c2: { flex: 1 }, c3: { width: 58, textAlign: "right" }, c4: { width: 50, textAlign: "right" }, c5: { width: 66, textAlign: "right" }, c6: { width: 66, textAlign: "right", paddingRight: 4 },
 });
 
@@ -66,7 +66,7 @@ export async function payslipPdfBuffer(payslipId: string, organizationId: string
               <Text style={[s.c1, { color: "#66736F" }]}>{l.code}</Text><Text style={s.c2}>{l.label}</Text><Text style={s.c3}>{n(l.base)}</Text><Text style={s.c4}>{pct(l.rate)}</Text><Text style={s.c5}>{n(l.gain)}</Text><Text style={s.c6}>{n(l.deduction)}</Text>
             </View>
           ))}
-          <View style={[s.row, { fontFamily: "Helvetica-Bold", borderBottom: "0.7pt solid #0B2422" }]}><Text style={s.c1} /><Text style={s.c2}>Totaux</Text><Text style={s.c3} /><Text style={s.c4} /><Text style={s.c5}>{n(gains)}</Text><Text style={s.c6}>{n(deds)}</Text></View>
+          <View style={[s.row, { fontFamily: "Helvetica-Bold", borderBottom: "0.7pt solid #0A2342" }]}><Text style={s.c1} /><Text style={s.c2}>Totaux</Text><Text style={s.c3} /><Text style={s.c4} /><Text style={s.c5}>{n(gains)}</Text><Text style={s.c6}>{n(deds)}</Text></View>
         </View>
         <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
           <View style={[s.box, { flex: 1.3 }]}>
@@ -83,7 +83,7 @@ export async function payslipPdfBuffer(payslipId: string, organizationId: string
             <Text style={s.label}>NET À PAYER</Text>
             <Text style={{ marginTop: 3, fontSize: 7.5, color: "#0F4C55" }}>Arrêté le présent bulletin à la somme de : {amountInFrenchWords(net)}.</Text>
           </View>
-          <Text style={{ fontSize: 17, fontFamily: "Helvetica-Bold", color: "#0B2422" }}>{nf.format(net)} DH</Text>
+          <Text style={{ fontSize: 17, fontFamily: "Helvetica-Bold", color: "#0A2342" }}>{nf.format(net)} DH</Text>
         </View>
         <View style={{ marginTop: 10 }}>
           <Text style={s.label}>Charges patronales (pour information) : CNSS {nf.format(ec.cnss ?? 0)} · Allocations familiales {nf.format(ec.familyAllowance ?? 0)} · AMO {nf.format((ec.amo ?? 0) + (ec.amoSolidarity ?? 0))} · IPE {nf.format(ec.ipe ?? 0)} · Taxe formation professionnelle {nf.format(ec.trainingTax ?? 0)}. Total {nf.format(ec.total ?? 0)} DH</Text>

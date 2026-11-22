@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { type Actor, type FeatureKey, normalizePermissions, type Permission, type PermissionSet, can } from "@yghr/core";
+import { type Actor, effectiveFeatures, type FeatureKey, normalizePermissions, type Permission, type PermissionSet, can } from "@yghr/core";
 import { prisma } from "@yghr/db";
 import { ACCESS_COOKIE, verifyAccess } from "./auth";
 
@@ -68,7 +68,7 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
     userId: u.id,
     sessionId: claims.sid,
     user: { id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, avatarUrl: u.avatarUrl, totpEnabled: u.totpEnabled },
-    org: { id: o.id, slug: o.slug, name: o.name, logoUrl: o.logoUrl, status: o.status, isDemo: o.isDemo, trialEndsAt: o.trialEndsAt?.toISOString() ?? null, blocked: membership.role !== "SUPER_ADMIN" && (o.status === "SUSPENDED" || (o.status === "TRIAL" && !!o.trialEndsAt && o.trialEndsAt < new Date())), timezone: o.timezone, currency: o.currency, nightStart: o.nightStart, nightEnd: o.nightEnd, weeklyRestDay: o.weeklyRestDay, planName: o.plan.name, features: o.plan.features as FeatureKey[] },
+    org: { id: o.id, slug: o.slug, name: o.name, logoUrl: o.logoUrl, status: o.status, isDemo: o.isDemo, trialEndsAt: o.trialEndsAt?.toISOString() ?? null, blocked: membership.role !== "SUPER_ADMIN" && (o.status === "SUSPENDED" || (o.status === "TRIAL" && !!o.trialEndsAt && o.trialEndsAt < new Date())), timezone: o.timezone, currency: o.currency, nightStart: o.nightStart, nightEnd: o.nightEnd, weeklyRestDay: o.weeklyRestDay, planName: o.plan.name, features: effectiveFeatures(o.plan.features, o.featureOverrides) },
     membershipId: membership.id,
     role: membership.role,
     employeeId: membership.employeeId,
@@ -92,10 +92,11 @@ export async function requirePage(slug: string, space: Space): Promise<SessionCo
     redirect(`/select-org?slug=${encodeURIComponent(slug)}`);
   }
   if (s.org.blocked) redirect("/suspendu");
+  if (!s.org.features.includes("employee_accounts") && s.role === "SALARIE") redirect("/acces-salarie");
   const expected = spaceForRole(s.role);
   if (space === "rh" && expected !== "rh") redirect(`/${slug}/${expected}`);
   if (space === "chef" && s.role !== "CHEF") redirect(`/${slug}/${expected}`);
-  if (space === "salarie" && !s.employeeId) redirect(`/${slug}/${expected}`);
+  if (space === "salarie" && (!s.employeeId || !s.org.features.includes("employee_accounts"))) redirect(`/${slug}/${expected}`);
   return s;
 }
 

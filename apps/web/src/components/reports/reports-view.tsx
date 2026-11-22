@@ -49,7 +49,7 @@ export function ReportsView({ today, canExport }: { today: string; canExport: bo
         <Input type="date" value={range.from} onChange={(e) => e.target.value && setRange({ ...range, from: e.target.value })} className="h-9 w-40" aria-label="Du" />
         <span className="text-muted">→</span>
         <Input type="date" value={range.to} min={range.from} onChange={(e) => e.target.value && setRange({ ...range, to: e.target.value })} className="h-9 w-40" aria-label="Au" />
-        <span className="rounded-full bg-accent-100 px-2.5 py-0.5 text-xs font-semibold text-[#9b5d0b] dark:text-accent-500">{days} jour{days > 1 ? "s" : ""}</span>
+        <span className="rounded-full bg-accent-100 px-2.5 py-0.5 text-xs font-semibold text-accent-700">{days} jour{days > 1 ? "s" : ""}</span>
         <div className="relative ml-auto min-w-[200px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" className="h-9 pl-9" aria-label="Rechercher" />

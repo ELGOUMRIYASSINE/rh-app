@@ -17,6 +17,7 @@ const Body = z.object({
   nightEnd: zTime,
   weeklyRestDay: z.number().int().min(0).max(6).nullable(),
   useServerTimeForPunches: z.boolean(),
+  punchDedupMinutes: z.coerce.number().int().min(0).max(120),
   require2FAForAdmins: z.boolean(),
   dailyEmails: z.boolean(),
   persistentSessions: z.boolean(),

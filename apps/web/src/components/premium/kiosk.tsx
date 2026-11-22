@@ -56,7 +56,7 @@ export function Kiosk({ token, orgName, logo, place, timezone, photoRequired, ge
   return (
     <div className="flex min-h-dvh flex-col bg-brand-900 text-white">
       <header className="flex items-center justify-between px-8 py-5">
-        {logo ? <span className="grid h-12 min-w-12 place-items-center rounded-xl bg-white p-1.5"><img src={logo} alt={orgName} className="max-h-full max-w-[160px] object-contain" /></span> : <YGHRLogo onDark size={34} />}
+        <YGHRLogo onDark size={38} />
         <div className="text-right"><div className="font-semibold">{orgName}</div><div className="text-sm text-white/60">{place}</div></div>
       </header>
       <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 pb-10 lg:flex-row lg:gap-20">

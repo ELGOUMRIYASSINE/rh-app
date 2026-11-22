@@ -30,9 +30,10 @@ export function PushToggle() {
         setOn(false);
         return;
       }
-      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!key) return toast.error("Les notifications push ne sont pas configurées sur ce serveur (clé VAPID manquante).");
-      if ((await Notification.requestPermission()) !== "granted") return toast.error("Autorisez les notifications dans votre navigateur.");
+      if (!window.isSecureContext) return toast.error("Les notifications nécessitent une connexion sécurisée (https). Elles fonctionneront sur le site hébergé.");
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") return toast.error(perm === "denied" ? "Les notifications sont bloquées pour ce site : autorisez-les dans les réglages du navigateur (icône à gauche de l'adresse)." : "Autorisez les notifications pour les recevoir sur cet appareil.");
+      const { publicKey: key } = await api<{ publicKey: string }>("/api/push/key");
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(key) });
       await api("/api/push/subscribe", { body: sub.toJSON() });
       setOn(true);

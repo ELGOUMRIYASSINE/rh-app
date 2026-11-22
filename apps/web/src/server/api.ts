@@ -61,6 +61,7 @@ export function route<B extends ZodType | undefined = undefined, Q extends ZodTy
       if (opts.feature && !s.org.features.includes(opts.feature)) fail(403, "Cette fonctionnalité n'est pas incluse dans votre pack.");
       if (opts.rhOnly && s.role !== "RH" && s.role !== "SUPER_ADMIN") fail(403, "Action réservée au responsable RH.");
       if (s.role === "SALARIE" && !opts.allowEmployee) fail(403, "Accès refusé.");
+      if (s.role === "SALARIE" && !s.org.features.includes("employee_accounts")) fail(403, "L'espace salarié n'est pas activé pour votre établissement.");
       if (opts.permission && s.role !== "SALARIE" && !canDo(s, opts.permission)) fail(403, "Vous n'avez pas le droit d'effectuer cette action.");
 
       let body: unknown = undefined;

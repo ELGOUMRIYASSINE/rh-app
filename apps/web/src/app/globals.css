@@ -8,57 +8,58 @@
 }
 
 /* ───────── YGHR tokens (section 3.2) ───────── */
+/* IT Global palette: navy (#0A2342) and royal blue (#0080D8) from the logo, cool slate neutrals. */
 :root {
-  /* Brand: one calm, trustworthy clinical teal; amber only for highlights. */
-  --brand-900: #0b2422;
-  --brand-800: #0e3833;
-  --brand-700: #0b5e56;
-  --brand-500: #0f766e;
-  --brand-400: #14958a;
-  --brand-100: #e7f3f0;
-  --accent-500: #e9a23b;
-  --accent-100: #fdf3df;
-  --success: #16865a;
-  --success-100: #e3f4ec;
-  --warning: #d08a0e;
-  --warning-100: #fcf1d9;
-  --danger: #d14343;
-  --danger-100: #fbe7e7;
-  --info: #2f6fdb;
-  --info-100: #e6eefc;
-  /* Neutrals: airy, near-white, thin borders (inspired by modern SaaS galleries). */
-  --bg: #f7f8f7;
+  --brand-900: #0a2342;
+  --brand-800: #0f2f57;
+  --brand-700: #0a4f94;
+  --brand-500: #0a6cc0;
+  --brand-400: #0080d8;
+  --brand-100: #e8f1fb;
+  --accent-500: #2ea8f0;
+  --accent-700: #0b5e9c;
+  --accent-100: #e3f3fd;
+  --success: #15845a;
+  --success-100: #e2f4ec;
+  --warning: #c98a0b;
+  --warning-100: #fcf2da;
+  --danger: #d0453f;
+  --danger-100: #fbe8e7;
+  --info: #2563c9;
+  --info-100: #e7eefb;
+  --bg: #f6f8fb;
   --surface: #ffffff;
-  --surface-2: #f2f4f3;
-  --border: #e4e7e5;
-  --text: #121a18;
-  --muted: #67716d;
+  --surface-2: #f0f3f8;
+  --border: #e2e8f0;
+  --text: #0f1b2d;
+  --muted: #5f6b7c;
   --ring: var(--brand-500);
   /* chart series (validated: lightness, chroma, CVD, contrast) */
-  --chart-1: #008c99;
+  --chart-1: #1f6fc8;
   --chart-2: #cc7a00;
-  --shadow-soft: 0 1px 2px rgb(16 26 24 / 0.04), 0 1px 1px rgb(16 26 24 / 0.02);
-  --shadow-pop: 0 2px 6px rgb(16 26 24 / 0.05), 0 12px 32px rgb(16 26 24 / 0.10);
+  --shadow-soft: 0 1px 2px rgb(10 35 66 / 0.05), 0 1px 1px rgb(10 35 66 / 0.03);
+  --shadow-pop: 0 2px 6px rgb(10 35 66 / 0.06), 0 12px 32px rgb(10 35 66 / 0.12);
   color-scheme: light;
 }
 
 .dark {
-  --brand-500: #34b3a4;
-  --brand-400: #4cc5b6;
-  --brand-100: #12302c;
-  --accent-500: #f1b35a;
-  --accent-100: #352914;
-  --success-100: #10301f;
-  --warning-100: #36290c;
-  --danger-100: #3b1b1b;
+  --brand-500: #3a9beb;
+  --brand-400: #5aaef0;
+  --brand-100: #12284a;
+  --accent-500: #4fb8f5;
+  --accent-700: #8fd0fa;
+  --accent-100: #0f2a44;
+  --success-100: #0f2f22;
+  --warning-100: #35290d;
+  --danger-100: #3b1c1c;
   --info-100: #14264a;
-  --bg: #0b100f;
-  --surface: #111816;
-  --surface-2: #172120;
-  --border: #22302c;
-  --text: #e6edea;
-  --muted: #8d9a96;
-  --chart-1: #1fa3b0;
+  --bg: #0a1220;
+  --surface: #101a2b;
+  --surface-2: #16223a;
+  --border: #22314b;
+  --text: #e7eef7;
+  --muted: #8d9bb0;
+  --chart-1: #4a94e6;
   --chart-2: #cc7f14;
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.35);
   --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.45);
@@ -66,22 +67,23 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --brand-500: #34b3a4;
-    --brand-400: #4cc5b6;
-    --brand-100: #12302c;
-    --accent-500: #f1b35a;
-    --accent-100: #352914;
-    --success-100: #10301f;
-    --warning-100: #36290c;
-    --danger-100: #3b1b1b;
+    --brand-500: #3a9beb;
+    --brand-400: #5aaef0;
+    --brand-100: #12284a;
+    --accent-500: #4fb8f5;
+    --accent-700: #8fd0fa;
+    --accent-100: #0f2a44;
+    --success-100: #0f2f22;
+    --warning-100: #35290d;
+    --danger-100: #3b1c1c;
     --info-100: #14264a;
-    --bg: #0b100f;
-    --surface: #111816;
-    --surface-2: #172120;
-    --border: #22302c;
-    --text: #e6edea;
-    --muted: #8d9a96;
-    --chart-1: #1fa3b0;
+    --bg: #0a1220;
+    --surface: #101a2b;
+    --surface-2: #16223a;
+    --border: #22314b;
+    --text: #e7eef7;
+    --muted: #8d9bb0;
+    --chart-1: #4a94e6;
     --chart-2: #cc7f14;
     --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.35);
     --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.45);
@@ -97,6 +99,7 @@
   --color-brand-400: var(--brand-400);
   --color-brand-100: var(--brand-100);
   --color-accent-500: var(--accent-500);
+  --color-accent-700: var(--accent-700);
   --color-accent-100: var(--accent-100);
   --color-success: var(--success);
   --color-success-100: var(--success-100);

@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <aside className="relative hidden overflow-hidden border-r border-border bg-bg p-12 lg:flex lg:flex-col">
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_0%_0%,color-mix(in_srgb,var(--brand-500)_12%,transparent),transparent_70%),radial-gradient(50%_50%_at_100%_100%,color-mix(in_srgb,var(--accent-500)_10%,transparent),transparent_70%)]" />
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:radial-gradient(var(--border)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_75%)]" />
-        <YGHRLogo size={36} className="relative" />
+        <YGHRLogo size={46} className="relative" />
         <div className="relative mt-auto max-w-lg">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted shadow-soft">
             <span className="size-1.5 rounded-full bg-brand-500" /> Pour les cliniques, hôpitaux et PME au Maroc
@@ -37,7 +37,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </aside>
       <main className="flex items-center justify-center px-5 py-10 sm:px-10">
         <div className="w-full max-w-[400px] animate-fade-in">
-          <div className="mb-10 lg:hidden"><YGHRLogo size={34} /></div>
+          <div className="mb-10 lg:hidden"><YGHRLogo size={40} /></div>
           {children}
         </div>
       </main>

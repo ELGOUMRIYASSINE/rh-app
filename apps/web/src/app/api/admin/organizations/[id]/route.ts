@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { PLAN_SEEDS } from "@yghr/core";
-import { prisma } from "@yghr/db";
+import { FEATURE_KEYS, PLAN_SEEDS } from "@yghr/core";
+import { Prisma, prisma } from "@yghr/db";
 import { platformRoute } from "@/server/platform";
 import { fail } from "@/server/api";
 
@@ -10,6 +10,8 @@ const Patch = z.object({
   status: z.enum(["ACTIVE", "TRIAL", "SUSPENDED"]).optional(),
   trialEndsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   internalNote: z.string().max(5000).nullable().optional(),
+  /** { feature: true | false } switch, or null to follow the plan again */
+  features: z.record(z.string(), z.boolean().nullable()).optional(),
 });
 
 export const PATCH = platformRoute({ body: Patch }, async ({ body, params, log }) => {
@@ -20,6 +22,17 @@ export const PATCH = platformRoute({ body: Patch }, async ({ body, params, log }
   if (body.internalNote !== undefined) data.internalNote = body.internalNote || null;
   if (body.status !== undefined) data.status = body.status;
   if (body.trialEndsAt !== undefined) data.trialEndsAt = body.trialEndsAt ? new Date(`${body.trialEndsAt}T23:59:59Z`) : null;
+  if (body.features) {
+    const current = { ...((org!.featureOverrides as Record<string, boolean> | null) ?? {}) };
+    const planFeatures = (await prisma.plan.findUniqueOrThrow({ where: { id: org!.planId } })).features;
+    for (const [k, v] of Object.entries(body.features)) {
+      if (!(FEATURE_KEYS as readonly string[]).includes(k)) fail(400, `Fonctionnalité inconnue : ${k}`);
+      // Same as the plan default: drop the override so plan changes keep applying.
+      if (v === null || v === planFeatures.includes(k)) delete current[k];
+      else current[k] = v;
+    }
+    data.featureOverrides = Object.keys(current).length ? current : Prisma.DbNull;
+  }
   if (body.planName) {
     const seed = PLAN_SEEDS.find((p) => p.name === body.planName);
     if (!seed) fail(400, "Pack inconnu.");

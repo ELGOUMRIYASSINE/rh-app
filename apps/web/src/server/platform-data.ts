@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@yghr/db";
+import { effectiveFeatures, FEATURE_INFO, FEATURE_KEYS } from "@yghr/core";
 import { logoSrc } from "./branding";
 
 const DAY = 86400_000;
@@ -123,6 +124,11 @@ export async function clinicDetail(id: string) {
       createdAt: iso(o.createdAt)!, contactEmail: o.contactEmail, phone: o.phone, address: o.address, timezone: o.timezone,
     },
     stats: { employees, services, centres, punches30, leavesPending, devices: devices.length, devicesOffline: devices.filter((d) => d.status === "OFFLINE").length, payroll: payroll ? `${String(payroll.month).padStart(2, "0")}/${payroll.year} ${({ DRAFT: "brouillon", CALCULATED: "calculée", VALIDATED: "validée", LOCKED: "clôturée" } as Record<string, string>)[payroll.status] ?? ""}` : null, lastLogin: iso(lastLogin?.user.lastLoginAt) },
+    features: (() => {
+      const eff = new Set(effectiveFeatures(o.plan.features, o.featureOverrides));
+      const ov = (o.featureOverrides as Record<string, boolean> | null) ?? {};
+      return FEATURE_KEYS.map((k) => ({ key: k, ...FEATURE_INFO[k], enabled: eff.has(k), inPlan: o.plan.features.includes(k), overridden: k in ov }));
+    })(),
     members: members.filter((x) => !x.user.isPlatformAdmin).map((x) => ({ id: x.id, role: x.role, active: x.active, name: `${x.user.firstName} ${x.user.lastName}`, email: x.user.email, activated: !!x.user.passwordHash, lastLoginAt: iso(x.user.lastLoginAt), totp: x.user.totpEnabled })),
     devices: devices.map((d) => ({ ...d, lastSeenAt: iso(d.lastSeenAt) })),
     tickets: tickets.map((t) => ({ id: t.id, subject: t.subject, status: t.status, priority: t.priority, updatedAt: iso(t.updatedAt)! })),

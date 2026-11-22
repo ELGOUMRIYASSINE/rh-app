@@ -11,7 +11,7 @@ import { config } from "dotenv";
 import { Queue, Worker, type Job } from "bullmq";
 import IORedis from "ioredis";
 import nodemailer from "nodemailer";
-import { addDays, blockingAnomalies, LEAVE_TYPE_LABELS } from "@yghr/core";
+import { addDays, blockingAnomalies, effectiveFeatures, LEAVE_TYPE_LABELS } from "@yghr/core";
 
 config({ path: path.resolve(import.meta.dirname, "../../../.env"), quiet: true });
 const { prisma, syncLanDevice, recomputeOrgAttendance, analyzeOrgPlanning, todayIn, dbDate } = await import("@yghr/db");
@@ -30,6 +30,8 @@ async function notifyRh(organizationId: string, n: { type: string; title: string
   if (!rh.length) return;
   await prisma.notification.createMany({ data: rh.map((r) => ({ organizationId, userId: r.userId, ...n })) });
   for (const r of rh) await emit(organizationId, "notification:new", n, r.userId);
+  // Phone / desktop notifications are sent by the web app (it holds the Web Push keys).
+  await fetch(`${process.env.WEB_INTERNAL_URL ?? "http://localhost:3000"}/api/internal/push`, { method: "POST", headers: { "content-type": "application/json", "x-internal-secret": process.env.REALTIME_INTERNAL_SECRET ?? "" }, body: JSON.stringify({ userIds: rh.map((r) => r.userId), title: n.title, body: n.body, link: n.link }), signal: AbortSignal.timeout(5000) }).catch(() => {});
 }
 const mailer = nodemailer.createTransport({ host: process.env.SMTP_HOST ?? "localhost", port: Number(process.env.SMTP_PORT ?? 1025), auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined });
 
@@ -68,9 +70,9 @@ const handlers: Record<string, (job: Job) => Promise<unknown>> = {
     return { days };
   },
   async "anomaly-scan"() {
-    const orgs = await prisma.organization.findMany({ select: { id: true, slug: true, timezone: true, plan: { select: { features: true } } } });
+    const orgs = await prisma.organization.findMany({ select: { id: true, slug: true, timezone: true, featureOverrides: true, plan: { select: { features: true } } } });
     for (const o of orgs) {
-      if (!o.plan.features.includes("planning")) continue;
+      if (!effectiveFeatures(o.plan.features, o.featureOverrides).includes("planning")) continue;
       const t = todayIn(o.timezone);
       const blocking = blockingAnomalies(await analyzeOrgPlanning(prisma, o.id, t, addDays(t, 13)));
       if (blocking.length) await notifyRh(o.id, { type: "planning", title: "Anomalies bloquantes à venir", body: `${blocking.length} anomalie(s) bloquante(s) dans le planning des 14 prochains jours (ex. ${blocking[0]!.title.toLowerCase()} le ${blocking[0]!.date.split("-").reverse().join("/")}).`, link: `/${o.slug}/rh/planning` });
@@ -89,7 +91,7 @@ const handlers: Record<string, (job: Job) => Promise<unknown>> = {
       const absent = days.filter((d) => d.status === "ABSENT").length;
       const missing = days.filter((d) => d.issues.includes("MISSING_OUT")).length;
       const rh = await prisma.membership.findMany({ where: { organizationId: o.id, role: "RH", active: true }, include: { user: true } });
-      const html = `<div style="font-family:Arial,sans-serif;color:#14201F"><h2 style="color:#0B2422">Résumé du ${y.split("-").reverse().join("/")}, ${o.name}</h2><p>${present} présent(s) · ${late} retard(s) · ${absent} absent(s) · ${missing} sortie(s) manquante(s)</p>${pending.length ? `<h3>Congés en attente</h3><ul>${pending.map((p) => `<li>${p.employee.firstName} ${p.employee.lastName} : ${LEAVE_TYPE_LABELS[p.type]} (${p.days} j)</li>`).join("")}</ul>` : "<p>Aucune demande de congé en attente.</p>"}<p><a href="${process.env.APP_URL ?? "http://localhost:3000"}/${o.slug}/rh">Ouvrir YGHR</a></p></div>`;
+      const html = `<div style="font-family:Arial,sans-serif;color:#14201F"><h2 style="color:#0A2342">Résumé du ${y.split("-").reverse().join("/")}, ${o.name}</h2><p>${present} présent(s) · ${late} retard(s) · ${absent} absent(s) · ${missing} sortie(s) manquante(s)</p>${pending.length ? `<h3>Congés en attente</h3><ul>${pending.map((p) => `<li>${p.employee.firstName} ${p.employee.lastName} : ${LEAVE_TYPE_LABELS[p.type]} (${p.days} j)</li>`).join("")}</ul>` : "<p>Aucune demande de congé en attente.</p>"}<p><a href="${process.env.APP_URL ?? "http://localhost:3000"}/${o.slug}/rh">Ouvrir YGHR</a></p></div>`;
       for (const m of rh) await mailer.sendMail({ from: process.env.MAIL_FROM ?? "YGHR <no-reply@yghr.ma>", to: m.user.email, subject: `YGHR · résumé du ${y.split("-").reverse().join("/")}`, html }).catch((e) => console.warn("[digest]", e.message));
     }
   },

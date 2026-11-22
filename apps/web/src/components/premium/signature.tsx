@@ -27,7 +27,7 @@ export function SignatureModule({ canSend, employees, signerName }: { canSend: b
         <div className="mb-5 grid gap-3 md:grid-cols-2">
           {toSign.map((r) => (
             <Card key={r.id} className="flex items-center gap-4 border-accent-500/40 p-4">
-              <div className="grid size-11 place-items-center rounded-[12px] bg-accent-100 text-[#9b5d0b] dark:text-accent-500"><FileSignature className="size-5" /></div>
+              <div className="grid size-11 place-items-center rounded-[12px] bg-accent-100 text-accent-700"><FileSignature className="size-5" /></div>
               <div className="min-w-0 flex-1"><div className="truncate font-semibold">{r.title}</div><div className="text-xs text-muted">Reçu le {frDate(r.createdAt)}</div></div>
               <Button onClick={() => setSigning(r)}><PenLine /> Signer</Button>
             </Card>

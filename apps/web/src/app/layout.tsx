@@ -11,10 +11,10 @@ export const metadata: Metadata = {
   title: { default: "YGHR", template: "%s · YGHR" },
   description: "Vos équipes, leur temps et leur paie, au même endroit.",
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/icons/icon.svg", apple: "/icons/icon.svg" },
+  icons: { icon: [{ url: "/favicon.png", sizes: "48x48", type: "image/png" }, { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/icons/icon-192.png" },
   applicationName: "YGHR",
 };
-export const viewport: Viewport = { themeColor: "#F7F8F7", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#F6F8FB", width: "device-width", initialScale: 1 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const theme = (await cookies()).get("yghr-theme")?.value;

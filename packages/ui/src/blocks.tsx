@@ -21,7 +21,7 @@ export function KpiCard({ icon, value, label, sub, progress, tone = "brand", hre
     success: ["bg-success-100 text-success", "bg-success"],
     warning: ["bg-warning-100 text-[#9a6a00] dark:text-warning", "bg-warning"],
     danger: ["bg-danger-100 text-danger", "bg-danger"],
-    accent: ["bg-accent-100 text-[#9b5d0b] dark:text-accent-500", "bg-accent-500"],
+    accent: ["bg-accent-100 text-accent-700", "bg-accent-500"],
   }[tone];
   const L = LinkComponent ?? "a";
   return (

@@ -14,7 +14,7 @@ import { TeamLeadsTab } from "./team-leads";
 
 const CONTRACT: Record<string, string> = { CDI: "CDI", CDD: "CDD", INTERIM: "Intérim", STAGE: "Stage" };
 
-export function EmployeesView({ employees, services, categories, centres, leads, base, openNew, initialTab, space }: EmployeeListData & { base: string; openNew?: boolean; initialTab: string; space: "rh" | "chef" }) {
+export function EmployeesView({ employees, services, categories, centres, leads, base, openNew, initialTab, space, accounts = true }: EmployeeListData & { base: string; openNew?: boolean; initialTab: string; space: "rh" | "chef"; accounts?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const [tab, setTab] = useState(initialTab);
@@ -147,7 +147,7 @@ export function EmployeesView({ employees, services, categories, centres, leads,
                             {e.weeklyHours && <div className="mt-1 text-xs text-muted">{e.weeklyHours} h/sem.</div>}
                           </td>
                           <td className={td}>
-                            {e.status === "ARCHIVED" ? <StatusPill>Archivé</StatusPill> : e.access === "invited" ? <Tooltip content="Invitation envoyée, compte pas encore activé"><span><StatusPill tone="warning" dot>Invité</StatusPill></span></Tooltip> : <StatusPill tone="success" dot>Actif</StatusPill>}
+                            {e.status === "ARCHIVED" ? <StatusPill>Archivé</StatusPill> : accounts && e.access === "invited" ? <Tooltip content="Invitation envoyée, compte pas encore activé"><span><StatusPill tone="warning" dot>Invité</StatusPill></span></Tooltip> : <StatusPill tone="success" dot>Actif</StatusPill>}
                           </td>
                           <td className={cn(td, "text-right")} onClick={(ev) => ev.stopPropagation()}>
                             <Menu>
@@ -155,7 +155,7 @@ export function EmployeesView({ employees, services, categories, centres, leads,
                               <MenuContent>
                                 <MenuItem icon={<Eye />} onSelect={() => router.push(`${base}/employes/${e.id}`)}>Voir la fiche</MenuItem>
                                 <MenuItem icon={<Pencil />} onSelect={() => router.push(`${base}/employes/${e.id}?edit=1`)}>Modifier</MenuItem>
-                                {e.access !== "active" && e.status === "ACTIVE" && <MenuItem icon={<MailPlus />} onSelect={() => reinvite(e.id)}>Renvoyer l'invitation</MenuItem>}
+                                {accounts && e.access !== "active" && e.status === "ACTIVE" && <MenuItem icon={<MailPlus />} onSelect={() => reinvite(e.id)}>Renvoyer l'invitation</MenuItem>}
                                 <MenuSeparator />
                                 {e.status === "ACTIVE" ? <MenuItem icon={<Archive />} danger onSelect={() => archive(e.id, name)}>Archiver</MenuItem> : <MenuItem icon={<ArchiveRestore />} onSelect={() => archive(e.id, name, true)}>Réactiver</MenuItem>}
                               </MenuContent>
@@ -176,7 +176,7 @@ export function EmployeesView({ employees, services, categories, centres, leads,
           </TabPanel>
         )}
       </Tabs>
-      {adding && <AddEmployeeModal services={services} categories={categories} centres={centres} onClose={() => setAdding(false)} onCreated={() => { setAdding(false); router.refresh(); }} canCreateRefs={space === "rh"} />}
+      {adding && <AddEmployeeModal accounts={accounts} services={services} categories={categories} centres={centres} onClose={() => setAdding(false)} onCreated={() => { setAdding(false); router.refresh(); }} canCreateRefs={space === "rh"} />}
       {importing && <ImportModal onClose={() => setImporting(false)} onDone={() => router.refresh()} />}
     </div>
   );

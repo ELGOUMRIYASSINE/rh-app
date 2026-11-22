@@ -21,16 +21,16 @@ function transport() {
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 function layout(title: string, bodyHtml: string, cta?: { label: string; url: string }) {
-  return `<!doctype html><html lang="fr"><body style="margin:0;background:#F7F8F6;font-family:Inter,Segoe UI,Arial,sans-serif;color:#14201F">
+  return `<!doctype html><html lang="fr"><body style="margin:0;background:#F6F8FB;font-family:Segoe UI,Arial,sans-serif;color:#0F1B2D">
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px"><tr><td align="center">
-  <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:14px;border:1px solid #E6E8E3;overflow:hidden">
-  <tr><td style="background:#0B2422;padding:20px 28px;color:#fff;font-weight:700;font-size:18px;letter-spacing:.5px">YG<span style="color:#F2A541">HR</span></td></tr>
+  <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:14px;border:1px solid #E2E8F0;overflow:hidden">
+  <tr><td style="background:#ffffff;padding:18px 28px;border-bottom:1px solid #E2E8F0"><img src="${appUrl()}/brand/logo-email.png" alt="IT Global" height="40" style="display:block;height:40px;width:auto;border:0" /></td></tr>
   <tr><td style="padding:28px">
     <h1 style="font-size:20px;margin:0 0 12px">${esc(title)}</h1>
-    <div style="font-size:15px;line-height:1.6;color:#33403E">${bodyHtml}</div>
-    ${cta ? `<p style="margin:24px 0 8px"><a href="${cta.url}" style="background:#0F766E;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:600;display:inline-block">${esc(cta.label)}</a></p><p style="font-size:12px;color:#66736F;word-break:break-all">Ou copiez ce lien : ${cta.url}</p>` : ""}
+    <div style="font-size:15px;line-height:1.6;color:#334155">${bodyHtml}</div>
+    ${cta ? `<p style="margin:24px 0 8px"><a href="${cta.url}" style="background:#0A6CC0;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:600;display:inline-block">${esc(cta.label)}</a></p><p style="font-size:12px;color:#5F6B7C;word-break:break-all">Ou copiez ce lien : ${cta.url}</p>` : ""}
   </td></tr>
-  <tr><td style="padding:16px 28px;border-top:1px solid #E6E8E3;font-size:12px;color:#66736F">Vos équipes, leur temps et leur paie, au même endroit.</td></tr>
+  <tr><td style="padding:16px 28px;border-top:1px solid #E2E8F0;font-size:12px;color:#5F6B7C">Vos équipes, leur temps et leur paie, au même endroit.</td></tr>
   </table></td></tr></table></body></html>`;
 }
 
@@ -57,7 +57,7 @@ export function inviteEmail(o: { to: string; firstName: string; orgName: string;
     `${o.orgName} vous invite sur YGHR`,
     layout(
       `Bonjour ${o.firstName},`,
-      `<p>${esc(o.orgName)} vous a ${o.asLead ? "nommé(e) <b>chef d'équipe</b>" : "ajouté(e)"} sur YGHR.</p><p>Créez votre mot de passe pour accéder à votre espace : planning, demandes de congé, absences et retards.</p><p style="color:#66736F;font-size:13px">Ce lien est valable 7 jours.</p>`,
+      `<p>${esc(o.orgName)} vous a ${o.asLead ? "nommé(e) <b>chef d'équipe</b>" : "ajouté(e)"} sur YGHR.</p><p>Créez votre mot de passe pour accéder à votre espace : planning, demandes de congé, absences et retards.</p><p style="color:#5F6B7C;font-size:13px">Ce lien est valable 7 jours.</p>`,
       { label: "Créer mon mot de passe", url },
     ),
   );
@@ -66,7 +66,7 @@ export function inviteEmail(o: { to: string; firstName: string; orgName: string;
 export function resetEmail(o: { to: string; firstName: string; token: string }) {
   const url = `${appUrl()}/reset/${o.token}`;
   if (process.env.NODE_ENV !== "production") console.info(`[mail] lien de réinitialisation pour ${o.to} : ${url}`);
-  return sendMail(o.to, "Réinitialisation de votre mot de passe YGHR", layout(`Bonjour ${o.firstName},`, `<p>Vous avez demandé à réinitialiser votre mot de passe. Si ce n'est pas vous, ignorez simplement cet e-mail.</p><p style="color:#66736F;font-size:13px">Ce lien est valable 7 jours.</p>`, { label: "Choisir un nouveau mot de passe", url }));
+  return sendMail(o.to, "Réinitialisation de votre mot de passe YGHR", layout(`Bonjour ${o.firstName},`, `<p>Vous avez demandé à réinitialiser votre mot de passe. Si ce n'est pas vous, ignorez simplement cet e-mail.</p><p style="color:#5F6B7C;font-size:13px">Ce lien est valable 7 jours.</p>`, { label: "Choisir un nouveau mot de passe", url }));
 }
 
 export function simpleEmail(to: string, subject: string, title: string, paragraphs: string[], cta?: { label: string; url: string }) {

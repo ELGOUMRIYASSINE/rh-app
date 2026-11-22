@@ -3,12 +3,17 @@ import { z } from "zod";
 import { prisma } from "@yghr/db";
 import { createAuthToken } from "./auth";
 import { inviteEmail } from "./mail";
+import { randomBytes } from "node:crypto";
 import { zDate, zOptNum, zOptStr } from "./api";
+
+/** Placeholder for employees without e-mail (no account): never mailed, shown as "e-mail à compléter". */
+export const placeholderEmail = (slug: string) => `sans-email-${randomBytes(4).toString("hex")}@${slug}.a-completer.invalid`;
 
 export const EmployeeInput = z.object({
   firstName: z.string().trim().min(1, "Prénom requis").max(80),
   lastName: z.string().trim().min(1, "Nom requis").max(80),
-  email: z.string().trim().toLowerCase().email("E-mail invalide"),
+  /** Empty is allowed only when the clinic has no employee accounts (see placeholderEmail). */
+  email: z.union([z.literal(""), z.string().trim().toLowerCase().email("E-mail invalide")]),
   phone: zOptStr,
   matricule: zOptStr,
   position: zOptStr,
@@ -35,7 +40,7 @@ export function employeeData(i: Partial<EmployeeInputT>) {
   return {
     firstName: i.firstName,
     lastName: i.lastName,
-    email: i.email,
+    email: i.email || undefined,
     phone: i.phone,
     matricule: i.matricule,
     position: i.position,

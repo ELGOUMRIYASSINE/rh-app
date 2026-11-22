@@ -1,4 +1,5 @@
 import "server-only";
+import { vapidKeys } from "./push-keys";
 import { prisma } from "@yghr/db";
 
 export type RealtimeEvent =
@@ -34,13 +35,13 @@ export async function notify(organizationId: string, userIds: string[], n: { typ
   void webPush(userIds, n);
 }
 
-async function webPush(userIds: string[], n: { title: string; body: string; link?: string }) {
-  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const priv = process.env.VAPID_PRIVATE_KEY;
-  if (!pub || !priv) return;
+export async function webPush(userIds: string[], n: { title: string; body: string; link?: string }) {
   try {
+    const subs0 = await prisma.pushSubscription.count({ where: { userId: { in: userIds } } });
+    if (!subs0) return;
+    const { publicKey, privateKey } = await vapidKeys();
     const wp = (await import("web-push")).default;
-    wp.setVapidDetails(`mailto:${process.env.SALES_EMAIL ?? "no-reply@yghr.ma"}`, pub, priv);
+    wp.setVapidDetails(`mailto:${process.env.SALES_EMAIL ?? "no-reply@yghr.ma"}`, publicKey, privateKey);
     const subs = await prisma.pushSubscription.findMany({ where: { userId: { in: userIds } } });
     await Promise.all(subs.map((s) => wp.sendNotification({ endpoint: s.endpoint, keys: s.keys as { p256dh: string; auth: string } }, JSON.stringify(n)).catch(async (e: { statusCode?: number }) => {
       if (e.statusCode === 404 || e.statusCode === 410) await prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});

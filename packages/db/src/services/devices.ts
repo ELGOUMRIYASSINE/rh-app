@@ -139,19 +139,22 @@ export async function syncLanDevice(db: PrismaClient, deviceId: string, opts: { 
     }
     const logs = (await zk.getAttendances()).data ?? [];
     const since = opts.full ? 0 : Date.now() - 45 * 86400_000;
+    const deviceNow = id.deviceTime ? deviceTimeToUtc(id.deviceTime, device.organization.timezone).getTime() : null;
+    const drift = deviceNow !== null ? Math.round((deviceNow - Date.now()) / 1000) : device.clockDriftSeconds;
     for (const l of logs) {
       const ts = deviceTimeToUtc(l.record_time, device.organization.timezone);
       if (ts.getTime() < since || Number.isNaN(ts.getTime())) continue;
       const st = l.state !== undefined ? PUNCH_STATE[String(l.state)] : undefined;
       const p = await ingestPunch(db, {
         organizationId: device.organizationId, deviceId: device.id, deviceUserId: String(l.user_id), timestamp: ts, source: "DEVICE",
+        // live = recorded in the last 3 minutes (device clock), otherwise it is history
+        live: deviceNow !== null && deviceNow - ts.getTime() >= 0 && deviceNow - ts.getTime() < 180_000, driftSeconds: drift,
         verifyMode: l.type !== undefined ? (VERIFY_MODE[String(l.type)] ?? `Code ${l.type}`) : null,
         direction: st?.direction ?? null, state: st?.label ?? null,
         rawPayload: { state: l.state, type: l.type },
       });
       if (p) created.push(p);
     }
-    const drift = id.deviceTime ? Math.round((deviceTimeToUtc(id.deviceTime, device.organization.timezone).getTime() - Date.now()) / 1000) : null;
     await db.device.update({
       where: { id: device.id },
       data: {
@@ -198,6 +201,10 @@ export async function setDeviceTime(db: PrismaClient, deviceId: string) {
  */
 export async function ingestAttlog(db: PrismaClient, deviceId: string, body: string) {
   const device = await db.device.findUniqueOrThrow({ where: { id: deviceId }, include: { organization: true } });
+  // A real-time push carries 1–3 lines; a history re-upload (or the answer to "renvoyer l'historique") carries many.
+  const count = body.split(/\r?\n/).filter((l) => l.trim()).length;
+  const historyAsked = await db.deviceCommand.count({ where: { deviceId, status: "SENT", command: { startsWith: "DATA QUERY ATTLOG" } } });
+  const live = count <= 3 && !historyAsked;
   const created: NonNullable<Awaited<ReturnType<typeof ingestPunch>>>[] = [];
   let lines = 0;
   for (const raw of body.split(/\r?\n/)) {
@@ -220,7 +227,11 @@ export async function ingestAttlog(db: PrismaClient, deviceId: string, body: str
       state: st?.label ?? null,
       workCode: workcode && workcode !== "0" ? workcode : null,
       rawPayload: { line },
+      live: live && Math.abs(ts.getTime() - Date.now()) < 6 * 3600_000,
+      driftSeconds: device.clockDriftSeconds,
     });
+    // Live push: the gap between the clock and the server is the clock drift.
+    if (live && count === 1 && Math.abs(ts.getTime() - Date.now()) < 6 * 3600_000) await db.device.update({ where: { id: device.id }, data: { clockDriftSeconds: Math.round((ts.getTime() - Date.now()) / 1000) } });
     if (p) created.push(p);
   }
   await db.device.update({ where: { id: device.id }, data: { status: "ONLINE", lastSeenAt: new Date(), lastSyncAt: created.length ? new Date() : undefined } });

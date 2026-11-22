@@ -30,7 +30,7 @@ export const POST = route(
         if (!ts) fail(400, "Heure requise.");
         // Keep the original punch (soft-deleted) and create the corrected one.
         await prisma.punch.update({ where: { id: p!.id }, data: { deletedAt: new Date(), reason: `Déplacé : ${body.reason}` } });
-        const n = await prisma.punch.create({ data: { organizationId: s.org.id, employeeId: emp!.id, timestamp: ts!, source: "CORRECTION", reason: body.reason, createdById: s.userId, rawPayload: { movedFrom: p!.id, original: p!.timestamp.toISOString() } } });
+        const n = await prisma.punch.create({ data: { organizationId: s.org.id, employeeId: emp!.id, timestamp: ts!, source: "CORRECTION", reason: body.reason, createdById: s.userId, rawPayload: { movedFrom: p!.id, original: (p!.rawPayload as { original?: string } | null)?.original ?? p!.timestamp.toISOString() } } });
         detail = { moved: p!.id, from: p!.timestamp, to: ts, newId: n.id };
       }
     }

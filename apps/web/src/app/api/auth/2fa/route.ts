@@ -10,7 +10,7 @@ export const GET = route({ allowEmployee: true }, async ({ s }) => {
   await prisma.user.update({ where: { id: s.userId }, data: { totpSecret: secret.base32, totpEnabled: false } });
   const totp = new OTPAuth.TOTP({ secret, issuer: "YGHR", label: s.user.email });
   const uri = totp.toString();
-  return { secret: secret.base32, uri, qr: await QRCode.toDataURL(uri, { margin: 1, width: 220, color: { dark: "#0B2422" } }) };
+  return { secret: secret.base32, uri, qr: await QRCode.toDataURL(uri, { margin: 1, width: 220, color: { dark: "#0A2342" } }) };
 });
 
 export const POST = route({ allowEmployee: true, body: z.object({ code: z.string().regex(/^\d{6}$/, "Code à 6 chiffres") }) }, async ({ s, body, log }) => {

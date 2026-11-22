@@ -30,6 +30,7 @@ export async function dayDetail(organizationId: string, date: string, scope: str
   const punches = await prisma.punch.findMany({ where: { organizationId, employeeId: { not: null }, timestamp: { gte: dayStartUtc(addDays(date, 0), tz), lt: dayStartUtc(addDays(date, 2), tz) }, ...(scope ? { employeeId: { in: scope } } : {}) }, orderBy: { timestamp: "asc" } });
   const empIds = [...new Set([...assignments.map((a) => a.employeeId), ...punches.filter((p) => p.timestamp < dayStartUtc(addDays(date, 1), tz)).map((p) => p.employeeId!)])];
   if (date <= todayIn(tz)) for (const id of empIds) await recomputeAttendance(prisma, organizationId, id, date, date);
+  const authors = new Map((await prisma.user.findMany({ where: { id: { in: [...new Set(punches.map((p) => p.createdById).filter((x): x is string => !!x))] } }, select: { id: true, firstName: true, lastName: true } })).map((u) => [u.id, `${u.firstName} ${u.lastName}`]));
   const [employees, days] = await Promise.all([
     prisma.employee.findMany({ where: { id: { in: empIds }, organizationId }, select: { id: true, firstName: true, lastName: true, position: true }, orderBy: { lastName: "asc" } }),
     prisma.attendanceDay.findMany({ where: { organizationId, date: dbDate(date), employeeId: { in: empIds } } }),
@@ -47,8 +48,12 @@ export async function dayDetail(organizationId: string, date: string, scope: str
         name: `${e.firstName} ${e.lastName}`,
         position: e.position,
         planned: a.map((x) => ({ code: x.shiftType?.code ?? "PERSO", name: x.shiftType?.name ?? "Horaire personnalisé", color: x.shiftType?.color ?? "#66736F", start: x.customStart ?? x.shiftType?.startTime ?? "", end: x.customEnd ?? x.shiftType?.endTime ?? "" })),
-        punches: punches.filter((p) => p.employeeId === e.id && p.timestamp.getTime() < until).map((p) => ({ id: p.id, at: p.timestamp.toISOString(), source: p.source, deleted: !!p.deletedAt, reason: p.reason })),
-        day: d ? { status: d.status, worked: d.workedMinutes, night: d.nightMinutes, overtime: d.overtimeMinutes, late: d.lateMinutes, early: d.earlyLeaveMinutes, issues: d.issues, justified: d.justified, validated: !!d.validatedAt } : null,
+        punches: punches.filter((p) => p.employeeId === e.id && p.timestamp.getTime() < until).map((p) => ({
+          id: p.id, at: p.timestamp.toISOString(), source: p.source, deleted: !!p.deletedAt, reason: p.reason, direction: p.direction, state: p.state,
+          original: (p.rawPayload as { original?: string } | null)?.original ?? null,
+          by: p.createdById ? (authors.get(p.createdById) ?? null) : null,
+        })),
+        day: d ? { status: d.status, worked: d.workedMinutes, night: d.nightMinutes, overtime: d.overtimeMinutes, late: d.lateMinutes, early: d.earlyLeaveMinutes, issues: d.issues, justified: d.justified, absenceReason: d.absenceReason, absenceNote: d.absenceNote, validated: !!d.validatedAt } : null,
       };
     }),
   };

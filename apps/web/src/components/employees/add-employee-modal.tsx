@@ -11,7 +11,7 @@ import { api } from "@/lib/api";
 const schema = z.object({
   firstName: z.string().trim().min(1, "Prénom requis"),
   lastName: z.string().trim().min(1, "Nom requis"),
-  email: z.string().trim().email("E-mail invalide"),
+  email: z.string().trim().email("E-mail invalide").or(z.literal("")),
   serviceId: z.string().optional(),
   centreId: z.string().optional(),
   staffCategoryId: z.string().optional(),
@@ -21,7 +21,7 @@ const schema = z.object({
 type F = z.infer<typeof schema>;
 const NEW = "__new__";
 
-export function AddEmployeeModal({ services: initialServices, categories: initialCategories, centres = [], onClose, onCreated, canCreateRefs = true }: { services: { id: string; name: string }[]; categories: { id: string; name: string }[]; centres?: { id: string; name: string }[]; onClose: () => void; onCreated: () => void; canCreateRefs?: boolean }) {
+export function AddEmployeeModal({ services: initialServices, categories: initialCategories, centres = [], onClose, onCreated, canCreateRefs = true, accounts = true }: { accounts?: boolean; services: { id: string; name: string }[]; categories: { id: string; name: string }[]; centres?: { id: string; name: string }[]; onClose: () => void; onCreated: () => void; canCreateRefs?: boolean }) {
   const [services, setServices] = useState(initialServices);
   const [categories, setCategories] = useState(initialCategories);
   const { register, handleSubmit, setValue, setError, formState: { errors, isSubmitting } } = useForm<F>({ resolver: zodResolver(schema), defaultValues: { serviceId: "", staffCategoryId: "", centreId: centres.length === 1 ? centres[0]!.id : "" } });
@@ -73,16 +73,16 @@ export function AddEmployeeModal({ services: initialServices, categories: initia
       onOpenChange={(o) => !o && onClose()}
       icon={<UserPlus />}
       title="Ajouter un salarié"
-      subtitle="Il recevra par e-mail un lien pour créer son mot de passe et accéder à son espace : planning, demandes de congé, absences et retards."
-      footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button onClick={handleSubmit(submit)} loading={isSubmitting}>Ajouter et envoyer les accès</Button></>}
+      subtitle={accounts ? "Si vous indiquez son e-mail, il recevra un lien pour accéder à son espace : planning, demandes de congé, absences et retards." : "Ses pointages, son planning et sa paie sont gérés par le service RH. Les comptes salariés ne sont pas activés pour votre établissement."}
+      footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button onClick={handleSubmit(submit)} loading={isSubmitting}>Ajouter le salarié</Button></>}
     >
       <form onSubmit={handleSubmit(submit)} className="space-y-6" noValidate>
         <section className="space-y-3">
-          <SectionLabel>Identité et accès</SectionLabel>
+          <SectionLabel>{accounts ? "Identité et accès" : "Identité"}</SectionLabel>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Prénom" required htmlFor="fn" error={errors.firstName?.message}><Input id="fn" {...register("firstName")} aria-invalid={!!errors.firstName} autoComplete="off" /></Field>
             <Field label="Nom" required htmlFor="ln" error={errors.lastName?.message}><Input id="ln" {...register("lastName")} aria-invalid={!!errors.lastName} autoComplete="off" /></Field>
-            <Field className="sm:col-span-2" label="E-mail" required htmlFor="em" error={errors.email?.message} help="Obligatoire : le salarié y reçoit ses accès à l'application."><Input id="em" type="email" {...register("email")} aria-invalid={!!errors.email} placeholder="prenom.nom@exemple.ma" /></Field>
+            <Field className="sm:col-span-2" label="E-mail" htmlFor="em" error={errors.email?.message} help={accounts ? "Facultatif. Avec un e-mail, le salarié reçoit ses accès à l'application ; sans e-mail, il n'a pas de compte (vous pourrez l'ajouter plus tard depuis sa fiche)." : "Facultatif."}><Input id="em" type="email" {...register("email")} aria-invalid={!!errors.email} placeholder="prenom.nom@exemple.ma" /></Field>
           </div>
         </section>
         <section className="space-y-3">

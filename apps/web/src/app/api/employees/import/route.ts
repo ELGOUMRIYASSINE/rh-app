@@ -2,7 +2,7 @@ import { prisma } from "@yghr/db";
 import { fail, route } from "@/server/api";
 import { readSheet } from "@/server/excel";
 import { validateRows } from "@/server/import";
-import { provisionAccess } from "@/server/employees";
+import { placeholderEmail, provisionAccess } from "@/server/employees";
 
 /** multipart: file (.xlsx|.csv), dryRun ("1" = preview only). */
 export const POST = route({ feature: "employees", permission: "team.add" }, async ({ s, req, log }) => {
@@ -16,7 +16,8 @@ export const POST = route({ feature: "employees", permission: "team.add" }, asyn
   if (!raw.length) fail(400, "Le fichier ne contient aucune ligne.");
   if (raw.length > 2000) fail(400, "2 000 lignes maximum par import.");
   const existing = new Set((await prisma.employee.findMany({ where: { organizationId: s.org.id }, select: { email: true } })).map((e) => e.email.toLowerCase()));
-  const rows = validateRows(raw, existing);
+  const accounts = s.org.features.includes("employee_accounts");
+  const rows = validateRows(raw, existing, { emailRequired: false });
   if (form.get("dryRun") === "1") {
     return { rows, valid: rows.filter((r) => !r.errors.length && !r.duplicate).length, invalid: rows.filter((r) => r.errors.length).length, duplicates: rows.filter((r) => r.duplicate).length };
   }
@@ -39,12 +40,12 @@ export const POST = route({ feature: "employees", permission: "team.add" }, asyn
       const d = r.data;
       const emp = await prisma.employee.create({
         data: {
-          organizationId: s.org.id, firstName: d.firstName, lastName: d.lastName, email: d.email, phone: d.phone, position: d.position, serviceId, contractType: d.contractType,
+          organizationId: s.org.id, firstName: d.firstName, lastName: d.lastName, email: d.email || placeholderEmail(s.org.slug), phone: d.phone, position: d.position, serviceId, contractType: d.contractType,
           hourlyRate: d.hourlyRate, netHourlyRate: d.netHourlyRate, birthDate: d.birthDate ? new Date(`${d.birthDate}T00:00:00Z`) : null, hireDate: d.hireDate ? new Date(`${d.hireDate}T00:00:00Z`) : null,
           cnssNumber: d.cnssNumber, matricule: d.matricule, teamLeadId: s.role === "CHEF" ? s.employeeId : null,
         },
       });
-      const acc = await provisionAccess({ organizationId: s.org.id, orgName: s.org.name, employeeId: emp.id, email: emp.email, firstName: emp.firstName, lastName: emp.lastName, password: d.password });
+      const acc = !accounts || emp.email.endsWith(".invalid") ? { invited: false } : await provisionAccess({ organizationId: s.org.id, orgName: s.org.name, employeeId: emp.id, email: emp.email, firstName: emp.firstName, lastName: emp.lastName, password: d.password });
       created++;
       if (acc.invited) invited++;
     } catch (e) {

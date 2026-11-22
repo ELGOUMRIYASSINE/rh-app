@@ -50,7 +50,7 @@ export async function stampSignedPdf(o: {
   for (const page of pages) {
     // Vertical stamp in the right margin: never overlaps the document's own header/footer.
     const { width, height } = page.getSize();
-    page.drawText(`Signé électroniquement par ${o.signer} le ${when}, ${brand.name}, réf. ${o.requestId}`, { x: width - 8, y: 40, size: 6.5, font, color: rgb(0.08, 0.5, 0.55), rotate: degrees(90), maxWidth: height - 80 });
+    page.drawText(`Signé électroniquement par ${o.signer} le ${when}, ${brand.name}, réf. ${o.requestId}`, { x: width - 8, y: 40, size: 6.5, font, color: rgb(0.04, 0.42, 0.75), rotate: degrees(90), maxWidth: height - 80 });
   }
 
   // Handwritten signature block on the last page.
@@ -60,7 +60,7 @@ export async function stampSignedPdf(o: {
     const boxW = 190, boxH = 82;
     const x = o.placement === "bottom-left" ? 40 : width - boxW - 40;
     const y = 44;
-    page.drawRectangle({ x, y, width: boxW, height: boxH, color: rgb(1, 1, 1), opacity: 0.92, borderColor: rgb(0.08, 0.5, 0.55), borderWidth: 0.6 });
+    page.drawRectangle({ x, y, width: boxW, height: boxH, color: rgb(1, 1, 1), opacity: 0.92, borderColor: rgb(0.04, 0.42, 0.75), borderWidth: 0.6 });
     const dims = sigImg.scaleToFit(boxW - 16, boxH - 28);
     page.drawImage(sigImg, { x: x + (boxW - dims.width) / 2, y: y + 20, width: dims.width, height: dims.height });
     page.drawText(o.signer, { x: x + 8, y: y + 10, size: 7.5, font: bold, color: rgb(0.08, 0.13, 0.12) });
@@ -68,7 +68,7 @@ export async function stampSignedPdf(o: {
   }
 
   const cert = pdf.addPage([595, 842]);
-  cert.drawRectangle({ x: 0, y: 772, width: 595, height: 70, color: rgb(0.043, 0.165, 0.184) });
+  cert.drawRectangle({ x: 0, y: 772, width: 595, height: 70, color: rgb(0.039, 0.137, 0.259) });
   let titleX = 40;
   if (brand.logo) {
     const logo = brand.logo.format === "png" ? await pdf.embedPng(brand.logo.data) : await pdf.embedJpg(brand.logo.data);

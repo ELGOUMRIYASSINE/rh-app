@@ -10,5 +10,5 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
   const sp = await searchParams;
   const s = await requirePage(org, "chef");
   const data = await employeeListData(s.org.id, s.subordinateIds);
-  return <EmployeesView {...data} base={`/${org}/chef`} openNew={sp.new === "1" && !!s.permissions["team.add"]} initialTab="employees" space="chef" />;
+  return <EmployeesView {...data} base={`/${org}/chef`} openNew={sp.new === "1" && !!s.permissions["team.add"]} initialTab="employees" space="chef" accounts={s.org.features.includes("employee_accounts")} />;
 }

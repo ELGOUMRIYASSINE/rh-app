@@ -13,8 +13,8 @@ export default async function DevicesPage({ params, searchParams }: { params: Pr
   const locked = gate(s, "devices", "Pointeuses");
   if (locked) return locked;
   const [o, employees] = await Promise.all([
-    prisma.organization.findUniqueOrThrow({ where: { id: s.org.id }, select: { useServerTimeForPunches: true } }),
+    prisma.organization.findUniqueOrThrow({ where: { id: s.org.id }, select: { useServerTimeForPunches: true, punchDedupMinutes: true } }),
     prisma.employee.findMany({ where: { organizationId: s.org.id, status: "ACTIVE" }, orderBy: { lastName: "asc" }, select: { id: true, firstName: true, lastName: true } }),
   ]);
-  return <DevicesView tz={s.org.timezone} initialTab={tab ?? "punches"} useServerTime={o.useServerTimeForPunches} employees={employees.map((e) => ({ id: e.id, name: `${e.lastName} ${e.firstName}` }))} />;
+  return <DevicesView tz={s.org.timezone} initialTab={tab ?? "punches"} useServerTime={o.useServerTimeForPunches} dedupMinutes={o.punchDedupMinutes} employees={employees.map((e) => ({ id: e.id, name: `${e.lastName} ${e.firstName}` }))} />;
 }

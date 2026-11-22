@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Activity, ArrowLeft, Ban, CalendarClock, Check, CheckCircle2, Copy, Eraser, Fingerprint, KeyRound, LifeBuoy, LogIn, MailPlus, MoreHorizontal, Play, Save, ShieldAlert, ShieldOff, Trash2, UserPlus, Users } from "lucide-react";
+import { Activity, ArrowLeft, SlidersHorizontal, Ban, CalendarClock, Check, CheckCircle2, Copy, Eraser, Fingerprint, KeyRound, LifeBuoy, LogIn, MailPlus, MoreHorizontal, Play, Save, ShieldAlert, ShieldOff, Trash2, UserPlus, Users } from "lucide-react";
 import { Button, Card, CardHeader, Field, Input, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Modal, Select, StatusPill, TabPanel, Tabs, td, Textarea, th, Toggle } from "@yghr/ui";
 import { toast } from "sonner";
 import type { ClinicDetail } from "@/server/platform-data";
@@ -81,6 +81,7 @@ export function ClinicDetailView({ d }: { d: ClinicDetail }) {
 
       <Tabs value={tab} onValueChange={setTab} tabs={[
         { value: "overview", label: "Aperçu", icon: <Activity /> },
+        { value: "features", label: "Fonctionnalités", icon: <SlidersHorizontal />, count: d.features.filter((f) => f.enabled).length },
         { value: "accounts", label: "Comptes", icon: <Users />, count: d.members.length },
         { value: "support", label: "Support", icon: <LifeBuoy />, count: d.tickets.filter((t) => t.status !== "RESOLVED").length },
         { value: "errors", label: "Incidents", icon: <ShieldAlert />, count: d.errors.filter((e) => !e.resolved).length },
@@ -136,6 +137,10 @@ export function ClinicDetailView({ d }: { d: ClinicDetail }) {
               </Card>
             </div>
           </div>
+        </TabPanel>
+
+        <TabPanel value="features" className="mt-5">
+          <FeaturesPanel orgId={o.id} plan={o.plan} features={d.features} />
         </TabPanel>
 
         <TabPanel value="accounts" className="mt-5">
@@ -250,5 +255,38 @@ function DeleteModal({ org, onClose }: { org: { id: string; name: string; slug: 
       <p className="text-sm text-muted">Toutes les données de la clinique (salariés, plannings, pointages, paies, documents) seront <b className="text-danger">effacées définitivement</b>. Pour une pause, préférez « Suspendre l&apos;accès ».</p>
       <Field className="mt-4" label={<>Tapez <span className="font-mono">{org.slug}</span> pour confirmer</>} htmlFor="dc"><Input id="dc" value={v} onChange={(e) => setV(e.target.value)} className="font-mono" autoComplete="off" /></Field>
     </Modal>
+  );
+}
+
+function FeaturesPanel({ orgId, plan, features }: { orgId: string; plan: string; features: ClinicDetail["features"] }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const groups = [...new Set(features.map((f) => f.group))];
+  async function set(key: string, value: boolean | null) {
+    setBusy(key);
+    try { await api(`/api/admin/organizations/${orgId}`, { method: "PATCH", body: { features: { [key]: value } } }); toast.success("Fonctionnalité mise à jour : la clinique la voit immédiatement."); router.refresh(); } catch {}
+    setBusy(null);
+  }
+  return (
+    <div className="space-y-4">
+      <Card className="p-5 text-sm text-muted">Activez ou désactivez chaque fonctionnalité pour cette clinique. Par défaut, elle suit le pack <b className="text-text">{plan}</b> ; un réglage modifié ici est marqué « personnalisé ». Les données ne sont jamais supprimées : une fonctionnalité réactivée retrouve tout.</Card>
+      {groups.map((g) => (
+        <Card key={g}>
+          <CardHeader title={g} />
+          <ul className="divide-y divide-border border-t border-border">
+            {features.filter((f) => f.group === g).map((f) => (
+              <li key={f.key} className="flex items-start gap-4 px-5 py-3.5">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 text-sm font-medium">{f.label}{f.overridden && <StatusPill tone="accent">Personnalisé</StatusPill>}</div>
+                  <div className="mt-0.5 text-[13px] text-muted">{f.description}</div>
+                  {f.overridden && <button onClick={() => set(f.key, null)} className="mt-1 cursor-pointer text-xs font-medium text-brand-500 hover:underline">Revenir au pack ({f.inPlan ? "activé" : "désactivé"})</button>}
+                </div>
+                <Toggle checked={f.enabled} disabled={busy === f.key} onChange={(v) => set(f.key, v)} label={<span className="sr-only">{f.label}</span>} />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ))}
+    </div>
   );
 }

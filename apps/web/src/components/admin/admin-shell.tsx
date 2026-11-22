@@ -20,7 +20,7 @@ export function AdminShell({ admin, counts, children }: { admin: { firstName: st
   const sidebar = (
     <div className="flex h-full w-[248px] flex-col border-r border-border bg-surface text-muted">
       <div className="flex h-16 items-center justify-between px-5">
-        <Link href="/admin" className="flex items-center gap-2"><YGHRLogo size={30} /><span className="rounded-full bg-accent-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#8a5a12] dark:text-accent-500">Console</span></Link>
+        <Link href="/admin" className="flex items-center gap-2"><YGHRLogo size={30} /><span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400">Console</span></Link>
         <button onClick={() => setDrawer(false)} className="grid size-8 cursor-pointer place-items-center rounded-lg hover:bg-surface-2 lg:hidden" aria-label="Fermer le menu"><X className="size-4" /></button>
       </div>
       <nav className="flex-1 space-y-0.5 px-3 py-3" aria-label="Navigation console">

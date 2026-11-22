@@ -24,7 +24,7 @@ export function EmployeeProfile({ data, base, tz, edit, initialTab, canSeeRates,
   const name = `${e.firstName} ${e.lastName}`;
   const [tab, setTab] = useState(edit ? "infos" : initialTab);
   const [editing, setEditing] = useState(!!edit);
-  const [form, setForm] = useState(e);
+  const [form, setForm] = useState({ ...e, email: e.email.endsWith(".invalid") ? "" : e.email });
   const [saving, setSaving] = useState(false);
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -60,7 +60,7 @@ export function EmployeeProfile({ data, base, tz, edit, initialTab, canSeeRates,
       {editing ? (
         <Input id={`f-${String(k)}`} type={opts.type ?? "text"} value={(form[k] as string | number | null) ?? ""} onChange={(ev) => set(k, (opts.type === "number" ? (ev.target.value === "" ? null : Number(ev.target.value)) : ev.target.value || null) as never)} className={opts.mono ? "font-mono" : ""} />
       ) : (
-        <div className={cn("flex h-10 items-center text-sm", opts.mono && "font-mono", !e[k] && e[k] !== 0 && "text-muted")}>{k === "birthDate" || k === "hireDate" ? frDate(e[k] as string | null) : String(e[k] ?? "")}</div>
+        <div className={cn("flex h-10 items-center text-sm", opts.mono && "font-mono", !e[k] && e[k] !== 0 && "text-muted")}>{k === "birthDate" || k === "hireDate" ? frDate(e[k] as string | null) : k === "email" && String(e[k]).endsWith(".invalid") ? "Non renseigné" : String(e[k] ?? "")}</div>
       )}
     </Field>
   );
@@ -90,7 +90,7 @@ export function EmployeeProfile({ data, base, tz, edit, initialTab, canSeeRates,
             </div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
               <span className="inline-flex items-center gap-1.5"><Briefcase className="size-3.5" />{e.position ?? "Poste non renseigné"}{e.service ? ` · ${e.service}` : ""}</span>
-              <span className="inline-flex items-center gap-1.5"><Mail className="size-3.5" />{e.email}</span>
+              {!e.email.endsWith(".invalid") && <span className="inline-flex items-center gap-1.5"><Mail className="size-3.5" />{e.email}</span>}
               {e.phone && <span className="inline-flex items-center gap-1.5"><Phone className="size-3.5" />{e.phone}</span>}
               {e.matricule && <span className="inline-flex items-center gap-1.5 font-mono"><IdCard className="size-3.5" />{e.matricule}</span>}
             </div>

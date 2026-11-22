@@ -27,7 +27,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, { onChange?: (empty: 
     ctx.scale(ratio, ratio);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = "#0B2422";
+    ctx.strokeStyle = "#0A2342";
     ctx.lineWidth = 2.4;
   };
   useEffect(() => {
@@ -50,7 +50,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, { onChange?: (empty: 
     const ctx = canvas.current!.getContext("2d")!;
     ctx.beginPath();
     ctx.arc(last.current.x, last.current.y, 1.1, 0, Math.PI * 2);
-    ctx.fillStyle = "#0B2422";
+    ctx.fillStyle = "#0A2342";
     ctx.fill();
   };
   const move = (e: React.PointerEvent) => {

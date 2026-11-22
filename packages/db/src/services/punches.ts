@@ -16,24 +16,50 @@ export interface IncomingPunch {
   state?: string | null;
   workCode?: string | null;
   rawPayload?: object;
+  /** Sent by the clock the moment it happened (real-time push), not part of a batch / history import. */
+  live?: boolean;
+  /** Known offset of the device clock (device − real), applied when the org trusts the server time. */
+  driftSeconds?: number | null;
 }
 
 /**
- * Idempotent punch ingestion: deduplicated on (deviceId, deviceUserId, timestamp),
- * resolves the employee via DeviceUserMap, then recomputes the attendance day.
- * Returns the punch when it is new, null when it was a duplicate.
+ * Idempotent punch ingestion.
+ * - A clock-in already received is recognised by (deviceId, deviceUserId, deviceTime): the clock's own time,
+ *   never the server time, so re-reading a device's history never creates copies.
+ * - "Use server time": only a live clock-in takes the reception time; imported history is corrected by the
+ *   known clock drift instead (it would otherwise all get the import time).
+ * - Anti-repeat: a clock-in of the same person within `punchDedupMinutes` of another one is ignored.
+ * Resolves the employee via DeviceUserMap and recomputes the attendance day.
+ * Returns the punch when it is new, null when it was a duplicate or a repeat.
  */
 export async function ingestPunch(db: PrismaClient, p: IncomingPunch) {
-  const org = await db.organization.findUniqueOrThrow({ where: { id: p.organizationId } });
-  const ts = org.useServerTimeForPunches ? new Date() : p.timestamp;
+  const org = await db.organization.findUniqueOrThrow({ where: { id: p.organizationId }, select: { timezone: true, useServerTimeForPunches: true, punchDedupMinutes: true } });
+  if (p.deviceId && p.deviceUserId) {
+    const dup = await db.punch.findUnique({ where: { deviceId_deviceUserId_deviceTime: { deviceId: p.deviceId, deviceUserId: p.deviceUserId, deviceTime: p.timestamp } } });
+    if (dup) return null;
+  }
+  let ts = p.timestamp;
+  if (org.useServerTimeForPunches && p.source === "DEVICE") {
+    if (p.live) ts = new Date();
+    else if (p.driftSeconds) ts = new Date(p.timestamp.getTime() - p.driftSeconds * 1000);
+  }
   let employeeId = p.employeeId ?? null;
   if (!employeeId && p.deviceUserId) {
     const map = await db.deviceUserMap.findUnique({ where: { organizationId_deviceUserId: { organizationId: p.organizationId, deviceUserId: p.deviceUserId } } });
     employeeId = map?.employeeId ?? null;
   }
-  if (p.deviceId && p.deviceUserId) {
-    const dup = await db.punch.findUnique({ where: { deviceId_deviceUserId_timestamp: { deviceId: p.deviceId, deviceUserId: p.deviceUserId, timestamp: p.timestamp } } });
-    if (dup) return null;
+  // Anti-repeat: the same person badging again within the window (double tap, spam, clock retry).
+  if (org.punchDedupMinutes > 0 && p.source !== "CORRECTION" && (employeeId || p.deviceUserId)) {
+    const w = org.punchDedupMinutes * 60_000;
+    const near = await db.punch.findFirst({
+      where: {
+        organizationId: p.organizationId, deletedAt: null,
+        ...(employeeId ? { employeeId } : { deviceUserId: p.deviceUserId, employeeId: null }),
+        timestamp: { gt: new Date(ts.getTime() - w), lt: new Date(ts.getTime() + w) },
+      },
+      select: { id: true },
+    });
+    if (near) return null;
   }
   const punch = await db.punch.create({
     data: {
@@ -41,7 +67,8 @@ export async function ingestPunch(db: PrismaClient, p: IncomingPunch) {
       deviceId: p.deviceId ?? null,
       deviceUserId: p.deviceUserId ?? null,
       employeeId,
-      timestamp: org.useServerTimeForPunches ? ts : p.timestamp,
+      timestamp: ts,
+      deviceTime: p.deviceId ? p.timestamp : null,
       source: p.source,
       verifyMode: p.verifyMode ?? null,
       direction: p.direction ?? null,

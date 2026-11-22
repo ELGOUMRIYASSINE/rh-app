@@ -176,7 +176,7 @@ const toneClass = {
   warning: "bg-warning-100 text-[#9a6a00] dark:text-warning",
   danger: "bg-danger-100 text-danger",
   info: "bg-info-100 text-info",
-  accent: "bg-accent-100 text-[#9b5d0b] dark:text-accent-500",
+  accent: "bg-accent-100 text-accent-700",
 } as const;
 export type Tone = keyof typeof toneClass;
 
@@ -198,7 +198,7 @@ export function SeverityBadge({ severity, label }: { severity: "BLOCKING" | "WAR
 }
 
 // ───────── Avatar ─────────
-const AVATAR_COLORS = ["#0F766E", "#E9A23B", "#1F9D6B", "#3B82F6", "#6D4AFF", "#D64545", "#0B5E56", "#C2410C"];
+const AVATAR_COLORS = ["#0A6CC0", "#0A2342", "#15845A", "#2EA8F0", "#6D4AFF", "#D0453F", "#0A4F94", "#C2410C"];
 export function Avatar({ name, src, size = 32, className }: { name: string; src?: string | null; size?: number; className?: string }) {
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
   let h = 0;

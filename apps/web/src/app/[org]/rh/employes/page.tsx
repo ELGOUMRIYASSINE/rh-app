@@ -13,5 +13,5 @@ export default async function EmployeesPage({ params, searchParams }: { params: 
   const locked = gate(s, "employees", "Salariés");
   if (locked) return locked;
   const data = await employeeListData(s.org.id, null);
-  return <EmployeesView {...data} base={`/${org}/rh`} openNew={sp.new === "1"} initialTab={sp.tab === "leads" ? "leads" : "employees"} space="rh" />;
+  return <EmployeesView {...data} base={`/${org}/rh`} openNew={sp.new === "1"} initialTab={sp.tab === "leads" ? "leads" : "employees"} space="rh" accounts={s.org.features.includes("employee_accounts")} />;
 }

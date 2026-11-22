@@ -4,7 +4,7 @@ import { z } from "zod";
 export const IMPORT_COLUMNS = [
   { header: "Prénom", key: "firstName", required: true },
   { header: "Nom", key: "lastName", required: true },
-  { header: "Email", key: "email", required: true },
+  { header: "Email", key: "email", required: false },
   { header: "Téléphone", key: "phone" },
   { header: "Poste", key: "position" },
   { header: "Département", key: "service" },
@@ -45,7 +45,7 @@ export interface ImportRow {
   duplicate: boolean;
 }
 
-export function validateRows(raw: Record<string, string>[], existingEmails: Set<string>): ImportRow[] {
+export function validateRows(raw: Record<string, string>[], existingEmails: Set<string>, opts: { emailRequired: boolean } = { emailRequired: true }): ImportRow[] {
   const seen = new Set<string>();
   return raw.map((r, i) => {
     const o: Record<string, string> = {};
@@ -57,7 +57,7 @@ export function validateRows(raw: Record<string, string>[], existingEmails: Set<
     if (!o.firstName) errors.push("Prénom manquant");
     if (!o.lastName) errors.push("Nom manquant");
     const email = (o.email ?? "").toLowerCase();
-    if (!email) errors.push("Email manquant");
+    if (!email) { if (opts.emailRequired) errors.push("Email manquant"); }
     else if (!z.string().email().safeParse(email).success) errors.push("Email invalide");
     const birth = parseDate(o.birthDate ?? "");
     const hire = parseDate(o.hireDate ?? "");

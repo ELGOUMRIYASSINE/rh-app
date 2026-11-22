@@ -2,9 +2,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCheck, ChevronLeft, ChevronRight, Clock, LogIn, MoreHorizontal, Pencil, Plus, RefreshCw, Trash2, UserX, ShieldCheck, CalendarX } from "lucide-react";
+import { ArrowLeft, CheckCheck, ChevronLeft, ChevronRight, Clock, LogIn, LogOut, MoreHorizontal, Pencil, Plus, RefreshCw, Trash2, UserX, ShieldCheck, CalendarX, FileText } from "lucide-react";
 import { addDays, formatLongDateFr, isoWeek, startOfIsoWeek, weekday } from "@yghr/core";
-import { Avatar, Button, Card, Checkbox, cn, EmptyState, Field, Input, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Modal, Skeleton, StatusPill, Textarea } from "@yghr/ui";
+import { Avatar, Button, Card, Checkbox, cn, EmptyState, Field, Input, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Modal, Select, Skeleton, StatusPill, Textarea } from "@yghr/ui";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { hm, timeIn } from "@/lib/format";
@@ -13,9 +13,22 @@ interface DaySum { date: string; planned: number; total: number; validated: numb
 interface Row {
   employeeId: string; name: string; position: string | null;
   planned: { code: string; name: string; color: string; start: string; end: string }[];
-  punches: { id: string; at: string; source: string; deleted: boolean; reason: string | null }[];
-  day: { status: string; worked: number; night: number; overtime: number; late: number; early: number; issues: string[]; justified: boolean | null; validated: boolean } | null;
+  punches: { id: string; at: string; source: string; deleted: boolean; reason: string | null; direction: string | null; state: string | null; original: string | null; by: string | null }[];
+  day: { status: string; worked: number; night: number; overtime: number; late: number; early: number; issues: string[]; justified: boolean | null; absenceReason: string | null; absenceNote: string | null; validated: boolean } | null;
 }
+export const ABSENCE_REASON: Record<string, string> = { SICK: "Maladie", WORK_ACCIDENT: "Accident du travail", LEAVE: "Congé", AUTHORIZED: "Absence autorisée", TRAINING: "Formation / mission", FAMILY: "Événement familial", UNJUSTIFIED: "Absence injustifiée", OTHER: "Autre motif" };
+
+/** Entrée / Sortie for each clock-in: the clock's own key when known, otherwise alternating in time order. */
+function withDirection(punches: Row["punches"]) {
+  let i = 0;
+  return punches.map((p) => {
+    if (p.deleted) return { ...p, dir: (p.direction as "IN" | "OUT" | null) ?? null };
+    const dir = (p.direction as "IN" | "OUT" | null) ?? (i % 2 === 0 ? "IN" : "OUT");
+    i++;
+    return { ...p, dir };
+  });
+}
+
 const DAY_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 const ISSUE: Record<string, string> = { MISSING_OUT: "Sortie manquante", PUNCH_WITHOUT_SHIFT: "Pointage sans shift", ABSENT: "Absent", LATE: "Retard", EARLY_LEAVE: "Sortie anticipée" };
 
@@ -38,6 +51,7 @@ export function AttendanceGestion({ today, tz, back }: { today: string; tz: stri
   const week = useQuery({ queryKey: ["att-week", monday], queryFn: () => api<{ days: DaySum[] }>(`/api/attendance/week?from=${monday}`) });
   const day = useQuery({ queryKey: ["att-day", date], queryFn: () => api<{ rows: Row[] }>(`/api/attendance/day?date=${date}`) });
   const [edit, setEdit] = useState<{ row: Row; action: "add" | "move" | "delete"; punch?: Row["punches"][number] } | null>(null);
+  const [absence, setAbsence] = useState<Row | null>(null);
   const [validating, setValidating] = useState(false);
   const refresh = () => { void qc.invalidateQueries({ queryKey: ["att-week"] }); void qc.invalidateQueries({ queryKey: ["att-day"] }); };
   const rows = day.data?.rows ?? [];
@@ -53,9 +67,9 @@ export function AttendanceGestion({ today, tz, back }: { today: string; tz: stri
     } catch {}
     setValidating(false);
   }
-  async function mark(r: Row, justified: boolean | null) {
-    await api("/api/attendance/mark", { body: { employeeId: r.employeeId, date, justified } });
-    toast.success(justified === null ? "Marquage retiré." : justified ? "Absence justifiée." : "Absence injustifiée (retenue en paie).");
+  async function clearAbsence(r: Row) {
+    await api("/api/attendance/mark", { body: { employeeId: r.employeeId, date, reason: null } });
+    toast.success("Motif d'absence retiré.");
     refresh();
   }
 
@@ -72,7 +86,7 @@ export function AttendanceGestion({ today, tz, back }: { today: string; tz: stri
         <Card className="h-fit p-3">
           <div className="mb-2 flex items-center justify-between">
             <Button size="icon-sm" variant="ghost" onClick={() => { setMonday(addDays(monday, -7)); setDate(addDays(monday, -7)); }} aria-label="Semaine précédente"><ChevronLeft /></Button>
-            <span className="rounded-full bg-accent-100 px-2.5 py-0.5 text-xs font-semibold text-[#9b5d0b] dark:text-accent-500">Semaine {isoWeek(monday).week}</span>
+            <span className="rounded-full bg-accent-100 px-2.5 py-0.5 text-xs font-semibold text-accent-700">Semaine {isoWeek(monday).week}</span>
             <Button size="icon-sm" variant="ghost" onClick={() => { setMonday(addDays(monday, 7)); setDate(addDays(monday, 7)); }} disabled={addDays(monday, 7) > today} aria-label="Semaine suivante"><ChevronRight /></Button>
           </div>
           <ul className="space-y-1">
@@ -116,9 +130,9 @@ export function AttendanceGestion({ today, tz, back }: { today: string; tz: stri
                         <div className="text-xs text-muted">{r.position ?? ""}</div>
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           {v && <StatusPill tone="success"><ShieldCheck className="size-3" /> Validé</StatusPill>}
-                          {r.day?.justified === true && <StatusPill tone="info">Absence justifiée</StatusPill>}
-                          {r.day?.justified === false && <StatusPill tone="danger">Absence injustifiée</StatusPill>}
+                          {r.day?.absenceReason ? <StatusPill tone={r.day.absenceReason === "UNJUSTIFIED" ? "danger" : "info"}>{ABSENCE_REASON[r.day.absenceReason] ?? r.day.absenceReason}</StatusPill> : r.day?.justified === true ? <StatusPill tone="info">Absence justifiée</StatusPill> : r.day?.justified === false ? <StatusPill tone="danger">Absence injustifiée</StatusPill> : null}
                         </div>
+                        {r.day?.absenceNote && <p className="mt-1.5 flex gap-1.5 text-xs text-muted"><FileText className="mt-0.5 size-3 shrink-0" />{r.day.absenceNote}</p>}
                       </div>
                     </div>
                     <div className="min-w-0 space-y-2">
@@ -128,24 +142,39 @@ export function AttendanceGestion({ today, tz, back }: { today: string; tz: stri
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-sm">
                         <span className="w-16 text-xs font-semibold uppercase tracking-wide text-muted">Réel</span>
-                        {r.punches.map((p) => (
-                          <span key={p.id} className={cn("group inline-flex items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 font-mono text-xs", p.deleted ? "bg-surface-2 text-muted line-through" : p.source === "CORRECTION" ? "bg-accent-100 text-[#9b5d0b] dark:text-accent-500" : "bg-brand-100 text-brand-700 dark:text-brand-400")} title={p.reason ?? (p.source === "CORRECTION" ? "Correction" : "Pointeuse")}>
-                            <LogIn className="size-3" /> {timeIn(p.at, tz)}
-                            {!p.deleted && !v && (
-                              <Menu>
-                                <MenuTrigger asChild><button className="grid size-5 cursor-pointer place-items-center rounded-full hover:bg-black/10" aria-label="Modifier ce pointage"><MoreHorizontal className="size-3" /></button></MenuTrigger>
-                                <MenuContent align="start">
-                                  <MenuItem icon={<Pencil />} onSelect={() => setEdit({ row: r, action: "move", punch: p })}>Déplacer</MenuItem>
-                                  <MenuItem icon={<Trash2 />} danger onSelect={() => setEdit({ row: r, action: "delete", punch: p })}>Supprimer</MenuItem>
-                                </MenuContent>
-                              </Menu>
+                        {withDirection(r.punches).filter((p) => !p.deleted).map((p) => (
+                          <div key={p.id} className="flex flex-col">
+                            <span className={cn("group inline-flex items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 text-xs", p.source === "CORRECTION" ? "bg-accent-100 text-accent-700" : p.dir === "IN" ? "bg-success-100 text-success" : "bg-brand-100 text-brand-700 dark:text-brand-400")}>
+                              {p.dir === "IN" ? <LogIn className="size-3" /> : <LogOut className="size-3" />}
+                              <span className="font-medium">{p.state ?? (p.dir === "IN" ? "Entrée" : "Sortie")}</span>
+                              <span className="font-mono">{timeIn(p.at, tz)}</span>
+                              {!v ? (
+                                <Menu>
+                                  <MenuTrigger asChild><button className="grid size-5 cursor-pointer place-items-center rounded-full hover:bg-black/10" aria-label="Modifier ce pointage"><MoreHorizontal className="size-3" /></button></MenuTrigger>
+                                  <MenuContent align="start">
+                                    <MenuItem icon={<Pencil />} onSelect={() => setEdit({ row: r, action: "move", punch: p })}>Modifier l&apos;heure</MenuItem>
+                                    <MenuItem icon={<Trash2 />} danger onSelect={() => setEdit({ row: r, action: "delete", punch: p })}>Supprimer</MenuItem>
+                                  </MenuContent>
+                                </Menu>
+                              ) : <span className="w-1" />}
+                            </span>
+                            {p.source === "CORRECTION" && (
+                              <span className="mt-1 max-w-[260px] pl-1 text-[11px] leading-snug text-muted">
+                                {p.original ? <>Pointé à <b className="font-mono text-text">{timeIn(p.original, tz)}</b> sur la pointeuse<br /></> : <>Ajouté manuellement<br /></>}
+                                <span className="italic">« {p.reason} »</span>{p.by ? ` · ${p.by}` : ""}
+                              </span>
                             )}
-                            {(p.deleted || v) && <span className="w-1" />}
-                          </span>
+                          </div>
                         ))}
                         {!live.length && <span className="text-xs text-danger">Aucun pointage</span>}
                         {!v && <button onClick={() => setEdit({ row: r, action: "add" })} className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-0.5 text-xs text-muted hover:border-brand-500 hover:text-brand-500"><Plus className="size-3" /> Ajouter</button>}
                       </div>
+                      {r.punches.some((p) => p.deleted && !p.reason?.startsWith("Déplacé")) && (
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                          <span className="w-16 font-semibold uppercase tracking-wide">Ignorés</span>
+                          {r.punches.filter((p) => p.deleted && !p.reason?.startsWith("Déplacé")).map((p) => <span key={p.id} title={p.reason ?? ""}><span className="font-mono line-through">{timeIn(p.at, tz)}</span>{p.reason ? ` (${p.reason})` : ""}</span>)}
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-1.5">
                         {r.day?.issues.filter((i) => i !== "LATE" && i !== "ABSENT").map((i) => <StatusPill key={i} tone="danger">{ISSUE[i] ?? i}</StatusPill>)}
                       </div>
@@ -160,9 +189,8 @@ export function AttendanceGestion({ today, tz, back }: { today: string; tz: stri
                         <Menu>
                           <MenuTrigger asChild><Button size="icon-sm" variant="ghost" aria-label="Plus d'actions"><MoreHorizontal /></Button></MenuTrigger>
                           <MenuContent>
-                            <MenuItem icon={<ShieldCheck />} onSelect={() => mark(r, true)}>Marquer absent justifié</MenuItem>
-                            <MenuItem icon={<UserX />} danger onSelect={() => mark(r, false)}>Marquer absent injustifié</MenuItem>
-                            {r.day?.justified !== null && r.day?.justified !== undefined && <><MenuSeparator /><MenuItem icon={<Clock />} onSelect={() => mark(r, null)}>Retirer le marquage</MenuItem></>}
+                            <MenuItem icon={<UserX />} onSelect={() => setAbsence(r)}>{r.day?.absenceReason || r.day?.justified != null ? "Modifier le motif d'absence" : "Indiquer un motif d'absence"}</MenuItem>
+                            {(r.day?.absenceReason || r.day?.justified != null) && <><MenuSeparator /><MenuItem icon={<Clock />} onSelect={() => clearAbsence(r)}>Retirer le motif</MenuItem></>}
                           </MenuContent>
                         </Menu>
                       )}
@@ -174,6 +202,7 @@ export function AttendanceGestion({ today, tz, back }: { today: string; tz: stri
           )}
         </Card>
       </div>
+      {absence && <AbsenceModal row={absence} date={date} onClose={() => setAbsence(null)} onDone={() => { setAbsence(null); refresh(); }} />}
       {edit && <CorrectionModal edit={edit} date={date} tz={tz} onClose={() => setEdit(null)} onDone={() => { setEdit(null); refresh(); }} />}
     </div>
   );
@@ -184,7 +213,7 @@ function CorrectionModal({ edit, date, tz, onClose, onDone }: { edit: { row: Row
   const [nextDay, setNextDay] = useState(false);
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
-  const title = { add: "Ajouter un pointage", move: "Déplacer le pointage", delete: "Supprimer le pointage" }[edit.action];
+  const title = { add: "Ajouter un pointage", move: "Modifier l'heure du pointage", delete: "Supprimer le pointage" }[edit.action];
   async function save() {
     setSaving(true);
     try {
@@ -203,7 +232,36 @@ function CorrectionModal({ edit, date, tz, onClose, onDone }: { edit: { row: Row
             <div className="pb-2.5"><Checkbox label="Le lendemain" checked={nextDay} onChange={(e) => setNextDay(e.target.checked)} /></div>
           </div>
         ) : <p className="text-sm">Le pointage de <b className="font-mono">{edit.punch ? timeIn(edit.punch.at, tz) : ""}</b> sera ignoré (il reste visible, barré, pour la traçabilité).</p>}
-        <Field label="Motif" required htmlFor="cr" help="Obligatoire. Exemples : oubli de badge, double pointage, pointeuse en panne…"><Textarea id="cr" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+        {edit.action === "move" && edit.punch && <p className="rounded-[10px] bg-surface-2 px-3 py-2 text-xs text-muted">Heure enregistrée par la pointeuse : <b className="font-mono text-text">{timeIn(edit.punch.original ?? edit.punch.at, tz)}</b>. Elle reste affichée sous l&apos;heure corrigée, avec votre justification.</p>}
+        <Field label="Justification" required htmlFor="cr" help="Obligatoire. Exemples : oubli de badge, double pointage, pointeuse en panne, autorisation de sortie…"><Textarea id="cr" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+      </div>
+    </Modal>
+  );
+}
+
+function AbsenceModal({ row, date, onClose, onDone }: { row: Row; date: string; onClose: () => void; onDone: () => void }) {
+  const [reason, setReason] = useState(row.day?.absenceReason ?? (row.day?.justified === false ? "UNJUSTIFIED" : "SICK"));
+  const [note, setNote] = useState(row.day?.absenceNote ?? "");
+  const [saving, setSaving] = useState(false);
+  async function save() {
+    setSaving(true);
+    try {
+      await api("/api/attendance/mark", { body: { employeeId: row.employeeId, date, reason, note: note.trim() || null } });
+      toast.success(reason === "UNJUSTIFIED" ? "Absence injustifiée enregistrée (retenue en paie)." : "Motif d'absence enregistré.");
+      onDone();
+    } catch {}
+    setSaving(false);
+  }
+  return (
+    <Modal open size="sm" onOpenChange={(o) => !o && onClose()} icon={<UserX />} title="Motif d'absence" subtitle={`${row.name} · ${date.split("-").reverse().join("/")}`} footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button onClick={save} loading={saving}>Enregistrer</Button></>}>
+      <div className="space-y-4">
+        <Field label="Motif" required htmlFor="ar">
+          <Select id="ar" value={reason} onChange={(e) => setReason(e.target.value)}>
+            {Object.entries(ABSENCE_REASON).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </Select>
+        </Field>
+        <p className={cn("rounded-[10px] px-3 py-2 text-xs", reason === "UNJUSTIFIED" ? "bg-danger-100 text-danger" : "bg-info-100 text-info")}>{reason === "UNJUSTIFIED" ? "Une absence injustifiée est retenue sur la paie." : "Absence justifiée : pas de retenue sur la paie."}</p>
+        <Field label="Précisions" htmlFor="an" help="Facultatif. Exemples : certificat médical reçu, rendez-vous administratif, prévenu par téléphone…"><Textarea id="an" rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} /></Field>
       </div>
     </Modal>
   );

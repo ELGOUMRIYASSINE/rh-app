@@ -19,7 +19,7 @@ export function LockedFeature({ title, feature }: { title: string; feature: stri
   }
   return (
     <Card className="mx-auto mt-10 max-w-xl px-8 py-14 text-center">
-      <div className="mx-auto mb-5 grid size-16 place-items-center rounded-full bg-accent-100 text-[#9b5d0b] dark:text-accent-500">
+      <div className="mx-auto mb-5 grid size-16 place-items-center rounded-full bg-accent-100 text-accent-700">
         <Lock className="size-7" strokeWidth={1.75} />
       </div>
       <h1 className="font-display text-2xl font-bold">{title}</h1>

@@ -113,17 +113,8 @@ function ShellInner({ base, space, nav, features, permissions, role, user, org, 
     return (
       <div className={cn("flex h-full flex-col border-r border-border bg-surface text-muted", mini ? "w-[72px]" : "w-[260px]")}>
         <div className={cn("flex h-16 shrink-0 items-center", mini ? "justify-center" : "justify-between px-5")}>
-          <Link href={base} aria-label={`Accueil ${org.name}`} className="flex min-w-0 items-center gap-2.5">
-            {org.logo ? (
-              <>
-                <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-[10px] border border-border bg-white p-0.5">
-                  <img src={org.logo} alt="" className="max-h-full max-w-full object-contain" />
-                </span>
-                {!mini && <span className="truncate font-display text-[15px] font-semibold leading-tight tracking-[-0.01em] text-text">{org.name}</span>}
-              </>
-            ) : (
-              <YGHRLogo variant={mini ? "mark" : "full"} size={32} />
-            )}
+          <Link href={base} aria-label="Accueil" className="flex min-w-0 items-center">
+            <YGHRLogo variant={mini ? "mark" : "full"} size={mini ? 28 : 38} />
           </Link>
           {mobile && (
             <button onClick={() => setDrawer(false)} className="grid size-8 cursor-pointer place-items-center rounded-lg hover:bg-surface-2" aria-label="Fermer le menu">
@@ -190,7 +181,6 @@ function ShellInner({ base, space, nav, features, permissions, role, user, org, 
               </Tooltip>
             )}
           </div>
-          {org.logo && !mini && <div className="px-3 pt-1 text-[10.5px] text-muted/70">Propulsé par YGHR</div>}
           {!mobile && (
             <button onClick={toggleCollapsed} className={cn("mt-1 flex h-8 w-full cursor-pointer items-center gap-2 rounded-lg px-3 text-xs text-muted hover:bg-surface-2 hover:text-text", mini && "justify-center px-0")} aria-label={mini ? "Déplier le menu" : "Replier le menu"}>
               {mini ? <ChevronsRight className="size-4" /> : <><ChevronsLeft className="size-4" /> Replier</>}

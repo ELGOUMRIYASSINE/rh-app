@@ -2,7 +2,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronDown, Clock, Cloud, Copy, CreditCard, Download, DownloadCloud, Fingerprint, History, Info, KeyRound, Link2, MoreHorizontal, Pencil, Plug, Power, RefreshCw, ScanFace, Search, Server, ShieldCheck, Sparkles, Trash2, UserPlus, Users, Wifi, WifiOff, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, Clock, LogIn, LogOut, Eraser, Cloud, Copy, CreditCard, Download, DownloadCloud, Fingerprint, History, Info, KeyRound, Link2, MoreHorizontal, Pencil, Plug, Power, RefreshCw, ScanFace, Search, Server, ShieldCheck, Sparkles, Trash2, UserPlus, Users, Wifi, WifiOff, X } from "lucide-react";
 import { Avatar, Button, Card, CardHeader, Checkbox, cn, EmptyState, Field, Input, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Modal, PageHeader, Segmented, Select, Skeleton, StatusPill, TabPanel, Tabs, td, th, Toggle } from "@yghr/ui";
 import { toast } from "sonner";
 import { api, download } from "@/lib/api";
@@ -17,16 +17,19 @@ interface Device {
   status: "ONLINE" | "OFFLINE" | "UNKNOWN"; lastSeenAt: string | null; lastSyncAt: string | null; _count: { punches: number; users: number };
   commands: { id: string; label: string; status: string; createdAt: string; doneAt: string | null }[];
 }
-interface Punch { id: string; at: string; employee: string | null; deviceUserId: string | null; deviceName: string | null; state: string | null; device: string | null; source: string; verifyMode: string | null; direction: string | null }
+interface Punch { id: string; at: string; employee: string | null; deviceUserId: string | null; deviceName: string | null; state: string | null; device: string | null; source: string; verifyMode: string | null; direction: "IN" | "OUT"; explicit: boolean }
 interface UserRow { pin: string; name: string | null; admin: boolean; fingerprints: number; face: boolean; card: string | null; password: boolean; devices: string[]; inDevice: boolean; punches: number; lastPunch: string | null; employee: { id: string; mapId: string; name: string; matricule: string | null } | null; suggestion: string | null }
 
-export function DevicesView({ tz, initialTab, useServerTime: initialServerTime }: { tz: string; initialTab: string; useServerTime: boolean; employees?: { id: string; name: string }[] }) {
+export function DevicesView({ tz, initialTab, useServerTime: initialServerTime, dedupMinutes = 10 }: { tz: string; initialTab: string; useServerTime: boolean; dedupMinutes?: number; employees?: { id: string; name: string }[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const qc = useQueryClient();
   const [tab, setTab] = useState(initialTab === "maps" ? "users" : initialTab);
   const [exporting, setExporting] = useState(false);
-  const punches = useQuery({ queryKey: ["punches"], queryFn: () => api<{ items: Punch[] }>("/api/punches/latest"), refetchInterval: 20_000 });
+  const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const [day, setDay] = useState(todayStr);
+  const [dir, setDir] = useState<"all" | "in" | "out">("all");
+  const punches = useQuery({ queryKey: ["punches", day, dir], queryFn: () => api<{ items: Punch[]; counts: { all: number; in: number; out: number; people: number } }>(`/api/punches/latest?date=${day}&dir=${dir}`), refetchInterval: day === todayStr ? 20_000 : false });
   const devices = useQuery({ queryKey: ["devices"], queryFn: () => api<{ items: Device[]; admsHost: string; admsPort: number }>("/api/devices"), refetchInterval: 15_000 });
   const users = useQuery({ queryKey: ["device-users"], queryFn: () => api<{ rows: UserRow[]; employees: { id: string; name: string; linked: boolean }[] }>("/api/device-users") });
   useRealtimeEvent("punch:new", () => { void punches.refetch(); void users.refetch(); });
@@ -46,8 +49,14 @@ export function DevicesView({ tz, initialTab, useServerTime: initialServerTime }
         <div className="mt-5">
           <TabPanel value="punches">
             <Card>
+              <div className="flex flex-wrap items-center gap-2.5 border-b border-border p-4">
+                <Input type="date" value={day} max={todayStr} onChange={(e) => e.target.value && setDay(e.target.value)} className="w-auto" aria-label="Jour" />
+                {day !== todayStr && <Button size="sm" variant="ghost" onClick={() => setDay(todayStr)}>Aujourd&apos;hui</Button>}
+                <Segmented value={dir} onChange={setDir} options={[{ value: "all", label: "Tous", count: punches.data?.counts.all }, { value: "in", label: "Entrées", count: punches.data?.counts.in }, { value: "out", label: "Sorties", count: punches.data?.counts.out }]} />
+                {punches.data && <span className="ml-auto text-sm text-muted">{punches.data.counts.people} personne{punches.data.counts.people > 1 ? "s" : ""} ont pointé</span>}
+              </div>
               {punches.isLoading ? <div className="space-y-2 p-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-11" />)}</div> : !punches.data?.items.length ? (
-                <EmptyState icon={<Fingerprint />} title="Aucun pointage reçu pour l'instant." action={<Button onClick={() => setTab("devices")}>Ajouter une pointeuse</Button>}>Dès qu'une pointeuse envoie des données, les pointages apparaissent ici en temps réel.</EmptyState>
+                (punches.data?.counts.all ? <EmptyState icon={<Fingerprint />} title={dir === "in" ? "Aucune entrée ce jour" : "Aucune sortie ce jour"}>Changez de filtre ou de jour.</EmptyState> : <EmptyState icon={<Fingerprint />} title={day === todayStr ? "Aucun pointage aujourd'hui pour l'instant." : "Aucun pointage ce jour."} action={!devices.data?.items.length ? <Button onClick={() => setTab("devices")}>Ajouter une pointeuse</Button> : undefined}>Dès qu'une pointeuse envoie des données, les pointages apparaissent ici en temps réel.</EmptyState>)
               ) : (
                 <div className="scrollbar-thin max-h-[70vh] overflow-auto">
                   <table className="w-full min-w-[820px]">
@@ -67,7 +76,7 @@ export function DevicesView({ tz, initialTab, useServerTime: initialServerTime }
                               )}
                             </td>
                             <td className={cn(td, "text-[13px]")}>{p.device ?? (p.source === "CORRECTION" ? "Correction RH" : p.source === "TABLET" ? "Tablette" : "")}</td>
-                            <td className={td}>{p.state || p.direction ? <StatusPill tone={p.direction === "IN" ? "success" : p.direction === "OUT" ? "neutral" : "info"}>{p.state ?? (p.direction === "IN" ? "Entrée" : "Sortie")}</StatusPill> : <span className="text-muted">Auto</span>}</td>
+                            <td className={td}><StatusPill tone={p.direction === "IN" ? "success" : "neutral"}>{p.direction === "IN" ? <LogIn className="size-3" /> : <LogOut className="size-3" />} {p.state ?? (p.direction === "IN" ? "Entrée" : "Sortie")}</StatusPill></td>
                             <td className={cn(td, "text-[13px] text-muted")}>{p.verifyMode ?? ""}</td>
                           </tr>
                         );
@@ -79,7 +88,7 @@ export function DevicesView({ tz, initialTab, useServerTime: initialServerTime }
             </Card>
           </TabPanel>
           <TabPanel value="devices">
-            <DevicesTab data={devices.data} loading={devices.isLoading} useServerTime={initialServerTime} onChange={() => { void devices.refetch(); void users.refetch(); void punches.refetch(); }} tz={tz} />
+            <DevicesTab data={devices.data} loading={devices.isLoading} useServerTime={initialServerTime} dedupMinutes={dedupMinutes} onChange={() => { void devices.refetch(); void users.refetch(); void punches.refetch(); }} tz={tz} />
           </TabPanel>
           <TabPanel value="users">
             <UsersTab data={users.data} loading={users.isLoading} tz={tz} onChange={() => { void users.refetch(); void punches.refetch(); }} onSyncAll={async () => {
@@ -115,8 +124,10 @@ function ExportModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function DevicesTab({ data, loading, useServerTime, onChange, tz }: { data?: { items: Device[]; admsHost: string; admsPort: number }; loading: boolean; useServerTime: boolean; onChange: () => void; tz: string }) {
+function DevicesTab({ data, loading, useServerTime, dedupMinutes, onChange, tz }: { data?: { items: Device[]; admsHost: string; admsPort: number }; loading: boolean; useServerTime: boolean; dedupMinutes: number; onChange: () => void; tz: string }) {
   const [serverTime, setServerTime] = useState(useServerTime);
+  const [dedup, setDedup] = useState(dedupMinutes);
+  const [repairing, setRepairing] = useState(false);
   const [form, setForm] = useState({ name: "", ip: "", port: 4370, password: "" });
   const [tested, setTested] = useState<{ serialNumber: string | null; model: string | null; firmware: string | null; userCount: number | null; logCount?: number | null; fingerprintCount?: number | null; faceCount?: number | null } | null>(null);
   const [testing, setTesting] = useState(false);
@@ -192,8 +203,37 @@ function DevicesTab({ data, loading, useServerTime, onChange, tz }: { data?: { i
 
   return (
     <div className="space-y-5">
-      <Card className="p-5">
-        <Toggle checked={serverTime} onChange={async (v) => { setServerTime(v); await api("/api/organization", { method: "PATCH", body: { useServerTimeForPunches: v } }); toast.success("Préférence enregistrée."); }} label={<span className="inline-flex items-center gap-2"><Clock className="size-4 text-muted" />Source de l'heure des pointages : utiliser l'heure du serveur</span>} description="Par défaut, l'horloge de la pointeuse horodate le pointage. Activez cette option pour les pointeuses dont l'horloge dérive : l'heure de réception par le serveur fera foi." />
+      <Card className="space-y-5 p-5">
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium">Anti-doublon</div>
+            <p className="mt-0.5 text-[13px] text-muted">Un salarié qui pointe plusieurs fois de suite (double badge, répétition) n&apos;est enregistré qu&apos;une fois : les pointages suivants dans ce délai sont ignorés.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={String(dedup)} onChange={async (e) => { const v = Number(e.target.value); setDedup(v); await api("/api/organization", { method: "PATCH", body: { punchDedupMinutes: v } }); toast.success(v ? `Pointages répétés ignorés pendant ${v} min.` : "Anti-doublon désactivé."); }} className="w-40" aria-label="Délai anti-doublon">
+              {[0, 2, 5, 10, 15, 30, 60].map((m) => <option key={m} value={m}>{m ? `${m} minutes` : "Désactivé"}</option>)}
+            </Select>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-start gap-4 border-t border-border pt-5">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium">Nettoyer les pointages</div>
+            <p className="mt-0.5 text-[13px] text-muted">Remet l&apos;heure réelle des pointages enregistrés à l&apos;heure de synchronisation, écarte les doublons et les pointages répétés, puis recalcule les présences. Rien n&apos;est effacé : les pointages écartés restent visibles, barrés, avec la raison.</p>
+          </div>
+          <Button variant="secondary" loading={repairing} onClick={async () => {
+            if (!(await confirmDialog({ title: "Nettoyer les pointages ?", message: "Les pointeuses LAN seront relues pour retrouver les heures réelles. Les présences concernées seront recalculées.", confirmLabel: "Nettoyer" }))) return;
+            setRepairing(true);
+            try {
+              const r = await api<{ restored: number; batchRemoved: number; repeatsRemoved: number; employees: number; devicesUnreachable: string[] }>("/api/punches/repair", { body: {} });
+              toast.success(`${r.restored} heure(s) rétablie(s), ${r.batchRemoved + r.repeatsRemoved} doublon(s) écarté(s), ${r.employees} salarié(s) recalculé(s).`, { description: r.devicesUnreachable.length ? `Injoignable(s) : ${r.devicesUnreachable.join(", ")}. Relancez quand la pointeuse est en ligne.` : undefined });
+              onChange();
+            } catch {}
+            setRepairing(false);
+          }}><Eraser /> Nettoyer les doublons</Button>
+        </div>
+        <div className="border-t border-border pt-5">
+        <Toggle checked={serverTime} onChange={async (v) => { setServerTime(v); await api("/api/organization", { method: "PATCH", body: { useServerTimeForPunches: v } }); toast.success("Préférence enregistrée."); }} label={<span className="inline-flex items-center gap-2"><Clock className="size-4 text-muted" />Source de l'heure des pointages : utiliser l'heure du serveur</span>} description="Par défaut, l'horloge de la pointeuse fait foi. Activé : un pointage reçu en direct prend l'heure du serveur, et l'historique importé est corrigé du décalage de l'horloge (il garde son heure réelle). À réserver aux pointeuses dont l'horloge dérive." />
+        </div>
       </Card>
 
       <Card>
