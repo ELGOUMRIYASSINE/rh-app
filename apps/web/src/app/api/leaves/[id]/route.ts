@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { addDays, LEAVE_TYPE_LABELS, eachDay } from "@yghr/core";
+import { BALANCE_LEAVE_TYPES, LEAVE_TYPE_LABELS, eachDay } from "@yghr/core";
 import { prisma, dbDate, fromDbDate, recomputeAttendance, todayIn } from "@yghr/db";
 import { fail, route } from "@/server/api";
 import { canDo } from "@/server/context";
 import { emit, notify } from "@/server/realtime";
+import { balancesFor } from "@/server/leave";
 
 /** approve | reject | cancel. Approval writes into the planning (replaces shifts), updates balances, notifies. */
 export const PATCH = route({ feature: "leaves", allowEmployee: true, body: z.object({ action: z.enum(["approve", "reject", "cancel"]), note: z.string().max(500).optional() }) }, async ({ s, params, body, log }) => {
@@ -19,6 +20,11 @@ export const PATCH = route({ feature: "leaves", allowEmployee: true, body: z.obj
     if (!canDo(s, "leaves.approve", l!.employeeId)) fail(403, "Vous ne pouvez pas décider de cette demande.");
     if (l!.status !== "PENDING") fail(400, "Cette demande a déjà été traitée.");
     if (body.action === "reject" && !body.note?.trim()) fail(400, "Indiquez le motif du refus.");
+    if (body.action === "approve" && BALANCE_LEAVE_TYPES.includes(l!.type)) {
+      const bal = (await balancesFor(s.org.id, l!.employeeId)).find((b) => b.type === l!.type);
+      if (bal?.needsDeclaration) fail(400, `Le solde annuel ${bal.periodYear} de ce salarié n'est pas déclaré : définissez-le avant d'approuver.`);
+      if (bal && l!.days.toNumber() > bal.available) fail(400, `Solde insuffisant : il reste ${Math.max(0, bal.available)} j pour ${l!.days.toNumber()} j demandés. Refusez la demande ou ajustez le solde annuel.`);
+    }
   }
   const status = body.action === "approve" ? "APPROVED" : body.action === "reject" ? "REJECTED" : "CANCELLED";
   const from = fromDbDate(l!.startDate);

@@ -226,8 +226,8 @@ export function EmployeeProfile({ data, base, tz, edit, initialTab, canSeeRates,
               {data.balances.map((b) => (
                 <Card key={b.type} className="p-5">
                   <div className="text-sm font-medium">{LEAVE_TYPE_LABELS[b.type]}</div>
-                  <div className="mt-2 font-display text-3xl font-bold tabular">{b.available} <span className="text-base font-medium text-muted">j</span></div>
-                  <div className="mt-1 text-xs text-muted">acquis {b.acquired} · pris {b.taken}{b.pending ? ` · en attente ${b.pending}` : ""} · {b.method === "OUVRABLES" ? "jours ouvrables" : "jours ouvrés"}</div>
+                  {b.needsDeclaration ? <div className="mt-2 text-sm text-warning">Solde annuel {b.periodYear} non déclaré · <Link className="font-medium text-brand-500 hover:underline" href={`${base}/conges`}>Définir</Link></div> : <div className="mt-2 font-display text-3xl font-bold tabular">{b.available} <span className="text-base font-medium text-muted">j</span></div>}
+                  <div className="mt-1 text-xs text-muted">{b.entitlement !== null ? `droit annuel ${b.entitlement}` : `acquis ${b.acquired}`} · pris {b.taken}{b.pending ? ` · en attente ${b.pending}` : ""} · {b.method === "OUVRABLES" ? "jours ouvrables" : "jours ouvrés"}</div>
                 </Card>
               ))}
               {data.balances.length === 0 && <p className="text-sm text-muted">Aucune politique de congés activée.</p>}

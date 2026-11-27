@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlarmClock, Bell, CalendarCheck2, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Download, FileText, LogIn, Moon, Plus, Wallet, Ban } from "lucide-react";
@@ -10,6 +11,7 @@ import type { MyOverview } from "@/server/me";
 import { api, download } from "@/lib/api";
 import { dayLabel, dh, frDate, hm, timeIn } from "@/lib/format";
 import { NewLeaveModal } from "@/components/leaves/new-leave-modal";
+import { EntitlementDeclare } from "@/components/leaves/entitlement-declare";
 import { confirmDialog } from "@/components/confirm";
 import { useRealtimeEvent } from "@/components/shell/realtime";
 
@@ -57,7 +59,9 @@ export function MyHome({ data, base, firstName }: { data: MyOverview; base: stri
             {data.balances.map((b) => (
               <div key={b.type} className="flex items-baseline justify-between">
                 <span className="text-sm">{LEAVE_TYPE_LABELS[b.type]}</span>
-                <span className="font-display text-xl font-bold tabular">{b.available} <span className="text-sm font-medium text-muted">j</span></span>
+                {b.needsDeclaration
+                  ? <Link href={`${base}/conges`} className="text-sm font-medium text-brand-500 hover:underline">Déclarer mon solde {b.periodYear}</Link>
+                  : <span className="font-display text-xl font-bold tabular">{b.available} <span className="text-sm font-medium text-muted">j</span></span>}
               </div>
             ))}
             {data.pendingLeaves > 0 && <p className="text-xs text-muted">{data.pendingLeaves} demande(s) en attente de réponse.</p>}
@@ -155,9 +159,11 @@ const LS: Record<string, [string, "warning" | "success" | "danger" | "neutral"]>
 
 export function MyLeaves({ data, employeeId, today, openNew }: { data: MyOverview; employeeId: string; today: string; openNew?: boolean }) {
   const qc = useQueryClient();
+  const router = useRouter();
   const [adding, setAdding] = useState(!!openNew);
   const q = useQuery({ queryKey: ["my-leaves"], queryFn: () => api<{ items: MyLeave[] }>("/api/leaves?status=ALL") });
-  useRealtimeEvent("leave:updated", () => q.refetch());
+  useRealtimeEvent("leave:updated", () => { void q.refetch(); router.refresh(); });
+  const undeclared = data.balances.find((b) => b.needsDeclaration);
   async function cancel(l: MyLeave) {
     if (!(await confirmDialog({ title: "Annuler cette demande ?", confirmLabel: "Annuler la demande", danger: true }))) return;
     await api(`/api/leaves/${l.id}`, { method: "PATCH", body: { action: "cancel" } });
@@ -168,14 +174,15 @@ export function MyLeaves({ data, employeeId, today, openNew }: { data: MyOvervie
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex items-center justify-between"><h1 className="font-display text-[26px] font-bold">Mes congés</h1><Button onClick={() => setAdding(true)}><Plus /> Nouvelle demande</Button></div>
       <div className="grid gap-3 sm:grid-cols-3">
-        {data.balances.map((b) => (
+        {data.balances.filter((b) => !b.needsDeclaration).map((b) => (
           <Card key={b.type} className="p-4">
-            <div className="text-sm text-muted">{LEAVE_TYPE_LABELS[b.type]}</div>
-            <div className="mt-1 font-display text-3xl font-bold tabular">{b.available} <span className="text-base text-muted">j</span></div>
-            <div className="mt-1 text-xs text-muted">acquis {b.acquired} · pris {b.taken}{b.pending ? ` · en attente ${b.pending}` : ""}</div>
+            <div className="text-sm text-muted">{LEAVE_TYPE_LABELS[b.type]}{b.entitlement !== null ? ` · ${b.periodYear}` : ""}</div>
+            <div className="mt-1 font-display text-3xl font-bold tabular">{Math.max(0, Math.round((b.available - b.pending) * 100) / 100)} <span className="text-base text-muted">j restants</span></div>
+            <div className="mt-1 text-xs text-muted">{b.entitlement !== null ? `droit annuel ${b.entitlement}` : `acquis ${b.acquired}`} · pris {b.taken}{b.pending ? ` · en attente ${b.pending}` : ""}</div>
           </Card>
         ))}
       </div>
+      {undeclared && <EntitlementDeclare year={undeclared.periodYear} onDone={() => router.refresh()} />}
       <Card>
         <CardHeader title="Mes demandes" />
         {!q.data ? <Skeleton className="m-5 h-24" /> : !q.data.items.length ? <EmptyState compact icon={<CalendarCheck2 />} title="Aucune demande">Faites votre première demande : votre responsable sera notifié.</EmptyState> : (
@@ -193,7 +200,7 @@ export function MyLeaves({ data, employeeId, today, openNew }: { data: MyOvervie
           </ul>
         )}
       </Card>
-      {adding && <NewLeaveModal employees={[]} selfEmployeeId={employeeId} today={today} onClose={() => setAdding(false)} onCreated={() => { setAdding(false); void q.refetch(); void qc.invalidateQueries(); }} />}
+      {adding && <NewLeaveModal employees={[]} selfEmployeeId={employeeId} today={today} onClose={() => setAdding(false)} onCreated={() => { setAdding(false); void q.refetch(); void qc.invalidateQueries(); router.refresh(); }} />}
     </div>
   );
 }

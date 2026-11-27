@@ -1,5 +1,6 @@
 import { YGHRLogo } from "@yghr/ui";
 import { CalendarClock, Fingerprint, ShieldCheck, Wallet } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const FEATURES = [
   [CalendarClock, "Planning des gardes", "Vérifie le repos, les nuits et les heures légales."],
@@ -35,7 +36,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
         <p className="relative mt-12 text-xs text-muted">© {new Date().getFullYear()} YGHR · Conçu au Maroc</p>
       </aside>
-      <main className="flex items-center justify-center px-5 py-10 sm:px-10">
+      <main className="relative flex items-center justify-center px-5 py-10 sm:px-10">
+        <ThemeToggle className="absolute right-4 top-4 sm:right-6 sm:top-6" />
         <div className="w-full max-w-[400px] animate-fade-in">
           <div className="mb-10 lg:hidden"><YGHRLogo size={40} /></div>
           {children}

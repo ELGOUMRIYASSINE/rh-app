@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, CalendarCheck2, Check, ChevronDown, Paperclip, Plus, Search, Settings2, X } from "lucide-react";
+import { Ban, CalendarCheck2, CalendarDays, Check, ChevronDown, Paperclip, Pencil, Plus, Search, Settings2, X } from "lucide-react";
 import { LEAVE_TYPE_LABELS, LEAVE_TYPES, type LeaveType } from "@yghr/core";
 import { Avatar, Button, Card, Checkbox, cn, EmptyState, Field, Input, PageHeader, Select, Skeleton, StatusPill, td, th, Tooltip } from "@yghr/ui";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { frDate } from "@/lib/format";
 import { confirmDialog } from "@/components/confirm";
 import { useRealtimeEvent } from "@/components/shell/realtime";
 import { NewLeaveModal } from "./new-leave-modal";
+import { EntitlementInput, parseDays } from "./entitlement-declare";
 
 interface Leave { id: string; employee: { id: string; firstName: string; lastName: string; position: string | null }; type: LeaveType; label: string; startDate: string; endDate: string; halfDayStart: boolean; halfDayEnd: boolean; days: number; comment: string | null; attachmentUrl: string | null; status: string; decisionNote: string | null; decidedBy: { firstName: string; lastName: string } | null; createdAt: string; canDecide: boolean }
 interface Policy { leaveType: "PAID_LEAVE" | "RTT" | "REPOS_COMPENSATEUR"; enabled: boolean; countingMethod: "OUVRABLES" | "OUVRES"; accruedPerMonth: number | null; annualAllowance: number | null; annualCap: number | null; periodStart: string; allowAdvanceFirstYear: boolean }
@@ -23,10 +24,10 @@ export function LeavesView({ employees, selfEmployeeId, today, openNew, defaultE
   const [sort, setSort] = useState("recent");
   const [adding, setAdding] = useState(!!openNew);
   const list = useQuery({ queryKey: ["leaves", status, type, q, sort], queryFn: () => api<{ items: Leave[]; counts: Record<string, number> }>(`/api/leaves?${new URLSearchParams({ status, sort, ...(type ? { type } : {}), ...(q ? { q } : {}) })}`), placeholderData: (p) => p });
-  useRealtimeEvent("leave:updated", () => qc.invalidateQueries({ queryKey: ["leaves"] }));
+  useRealtimeEvent("leave:updated", () => { void qc.invalidateQueries({ queryKey: ["leaves"] }); void qc.invalidateQueries({ queryKey: ["leave-entitlements"] }); });
   const counts = list.data?.counts ?? {};
   const total = Object.values(counts).reduce((t, n) => t + n, 0);
-  const refresh = () => qc.invalidateQueries({ queryKey: ["leaves"] });
+  const refresh = () => { void qc.invalidateQueries({ queryKey: ["leaves"] }); void qc.invalidateQueries({ queryKey: ["leave-entitlements"] }); };
 
   async function decide(l: Leave, action: "approve" | "reject" | "cancel") {
     let note: string | undefined;
@@ -47,6 +48,7 @@ export function LeavesView({ employees, selfEmployeeId, today, openNew, defaultE
     <div>
       <PageHeader title="Gestion des congés" subtitle="Validez et suivez les demandes d'absence" actions={<Button onClick={() => setAdding(true)}><Plus /> Nouvelle demande</Button>} />
       {canEditPolicy && <PolicyPanel />}
+      <EntitlementsPanel editable={canEditPolicy} />
       <Card>
         <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 pt-3">
           {[["PENDING", "En attente"], ["APPROVED", "Approuvés"], ["REJECTED", "Refusés"], ["ALL", "Tous"]].map(([v, l]) => (
@@ -156,6 +158,90 @@ function PolicyPanel() {
               <div className="mt-4 flex justify-end"><Button onClick={save} loading={saving}>Enregistrer</Button></div>
             </>
           )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+interface EntRow { employee: { id: string; firstName: string; lastName: string; position: string | null }; entitlement: number | null; adjusted: number; taken: number; pending: number; available: number | null; declaredAt: string | null }
+
+/** Yearly paid-leave allowance of each employee (18, 21, 30 j…): declared once a year, consumed by approved leaves. */
+function EntitlementsPanel({ editable }: { editable: boolean }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const data = useQuery({ queryKey: ["leave-entitlements"], queryFn: () => api<{ enabled: boolean; periodYear?: number; items: EntRow[] }>("/api/leaves/entitlement") });
+  if (!data.data?.enabled) return null;
+  const items = data.data.items;
+  const missing = items.filter((i) => i.entitlement === null).length;
+  const shown = items.filter((i) => `${i.employee.firstName} ${i.employee.lastName}`.toLowerCase().includes(q.toLowerCase()));
+  async function save(employeeId: string) {
+    const days = parseDays(value);
+    if (days === null) return toast.error("Indiquez un nombre de jours valide.");
+    setSaving(true);
+    try {
+      await api("/api/leaves/entitlement", { method: "PUT", body: { employeeId, days } });
+      toast.success("Solde annuel enregistré.");
+      setEditing(null);
+      void qc.invalidateQueries({ queryKey: ["leave-entitlements"] });
+    } catch {}
+    setSaving(false);
+  }
+  return (
+    <Card className="mb-5">
+      <button onClick={() => setOpen(!open)} className="flex w-full cursor-pointer items-center gap-3 px-5 py-4 text-left" aria-expanded={open}>
+        <div className="grid size-9 place-items-center rounded-[10px] bg-brand-100 text-brand-700 dark:text-brand-400"><CalendarDays className="size-[18px]" /></div>
+        <div className="flex-1">
+          <div className="text-[15px] font-semibold">Soldes annuels {data.data.periodYear}</div>
+          <div className="text-[13px] text-muted">Jours de congé payé auxquels chaque salarié a droit cette année (18, 21, 30 j…)</div>
+        </div>
+        {missing > 0 && <StatusPill tone="warning">{missing} non déclaré{missing > 1 ? "s" : ""}</StatusPill>}
+        <ChevronDown className={cn("size-5 text-muted transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="border-t border-border animate-fade-in">
+          <div className="p-4">
+            <div className="relative max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un salarié…" className="h-9 pl-9" aria-label="Rechercher un salarié" />
+            </div>
+          </div>
+          <div className="scrollbar-thin max-h-[480px] overflow-auto">
+            <table className="w-full min-w-[760px]">
+              <thead><tr>{["Salarié", "Droit annuel", "Pris", "En attente", "Restant", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
+              <tbody>
+                {shown.map((r) => {
+                  const name = `${r.employee.firstName} ${r.employee.lastName}`;
+                  const left = r.available === null ? null : Math.round((r.available - r.pending) * 100) / 100;
+                  return (
+                    <tr key={r.employee.id} className="hover:bg-surface-2/50">
+                      <td className={td}><div className="flex items-center gap-3"><Avatar name={name} size={28} /><div><div className="font-medium">{name}</div><div className="text-xs text-muted">{r.employee.position ?? ""}</div></div></div></td>
+                      <td className={td}>
+                        {editing === r.employee.id ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <EntitlementInput value={value} onChange={setValue} />
+                            <Button size="sm" onClick={() => save(r.employee.id)} loading={saving}>OK</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>Annuler</Button>
+                          </div>
+                        ) : r.entitlement === null ? <StatusPill tone="warning">Non déclaré</StatusPill> : <b className="tabular">{r.entitlement} j</b>}
+                        {r.adjusted !== 0 && editing !== r.employee.id && <span className="ml-1 text-xs text-muted">({r.adjusted > 0 ? "+" : ""}{r.adjusted} ajust.)</span>}
+                      </td>
+                      <td className={cn(td, "tabular")}>{r.taken} j</td>
+                      <td className={cn(td, "tabular text-muted")}>{r.pending ? `${r.pending} j` : "—"}</td>
+                      <td className={cn(td, "font-semibold tabular", left !== null && left <= 0 && "text-danger")}>{left === null ? "—" : `${left} j`}</td>
+                      <td className={cn(td, "text-right")}>
+                        {editable && editing !== r.employee.id && <Button size="sm" variant="ghost" onClick={() => { setEditing(r.employee.id); setValue(r.entitlement === null ? "" : String(r.entitlement)); }}><Pencil /> {r.entitlement === null ? "Définir" : "Modifier"}</Button>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </Card>

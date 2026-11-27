@@ -71,8 +71,9 @@ export const POST = route({ feature: "leaves", allowEmployee: true }, async ({ s
   if (check.overlapsRequest) fail(409, "Cette période chevauche une autre demande en attente ou approuvée.");
   if (BALANCE_LEAVE_TYPES.includes(body.type)) {
     const bal = (await balancesFor(s.org.id, emp!.id)).find((b) => b.type === body.type);
-    // DECISION: an employee cannot exceed the balance; RH/leads may (with a warning shown in the form).
-    if (bal && days > bal.available - bal.pending && forSelf && s.role === "SALARIE") fail(400, `Solde insuffisant : ${Math.max(0, bal.available - bal.pending)} j disponible(s) pour ${days} j demandé(s).`);
+    if (bal?.needsDeclaration) fail(400, forSelf ? `Déclarez d'abord votre solde annuel de congés ${bal.periodYear} (nombre de jours auxquels vous avez droit).` : `Le solde annuel ${bal.periodYear} de ${emp!.firstName} ${emp!.lastName} n'est pas encore déclaré.`);
+    // DECISION: nobody can exceed the remaining balance (days already pending are reserved).
+    if (bal && days > bal.available - bal.pending) fail(400, `Solde insuffisant : ${Math.max(0, Math.round((bal.available - bal.pending) * 100) / 100)} j disponible(s) pour ${days} j demandé(s).`);
   }
   const attachment = file ? await saveUpload(s.org.id, "leaves", file).catch((e: Error) => fail(400, e.message)) : null;
   const l = await prisma.leaveRequest.create({

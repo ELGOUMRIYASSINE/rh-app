@@ -13,6 +13,7 @@ import { NAV_ICONS } from "./icons";
 import type { NavGroup } from "./nav";
 import { RealtimeProvider, useRealtime, useRealtimeEvent } from "./realtime";
 import { CommandPalette } from "./command-palette";
+import { ThemeToggle, useTheme } from "@/components/theme-toggle";
 import { toast } from "sonner";
 
 export interface ShellProps {
@@ -36,23 +37,6 @@ export function AppShell(props: ShellProps) {
       <ShellInner {...props} />
     </RealtimeProvider>
   );
-}
-
-function useTheme() {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    const c = document.documentElement.classList;
-    setDark(c.contains("dark") || (!c.contains("light") && matchMedia("(prefers-color-scheme: dark)").matches));
-  }, []);
-  const toggle = () => {
-    const next = !dark;
-    setDark(next);
-    const c = document.documentElement.classList;
-    c.toggle("dark", next);
-    c.toggle("light", !next);
-    document.cookie = `yghr-theme=${next ? "dark" : "light"}; path=/; max-age=31536000; samesite=lax`;
-  };
-  return { dark, toggle };
 }
 
 function ShellInner({ base, space, nav, features, permissions, role, user, org, orgs, children }: ShellProps) {
@@ -230,11 +214,7 @@ function ShellInner({ base, space, nav, features, permissions, role, user, org, 
           <ConnectionPill />
           {features.includes("messaging") && space !== "salarie" && <MessagesButton href={`${base}/messages`} />}
           <NotificationBell />
-          <Tooltip content={theme.dark ? "Mode clair" : "Mode sombre"}>
-            <button onClick={theme.toggle} className="hidden size-9 cursor-pointer place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-text sm:grid" aria-label="Changer de thème">
-              {theme.dark ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
-            </button>
-          </Tooltip>
+          <ThemeToggle theme={theme} />
           <Menu>
             <MenuTrigger asChild>
               <button className="flex cursor-pointer items-center gap-1.5 rounded-full p-0.5 hover:bg-surface-2" aria-label="Menu utilisateur">

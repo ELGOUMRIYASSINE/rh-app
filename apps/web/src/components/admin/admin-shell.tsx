@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Activity, Building2, LayoutDashboard, LifeBuoy, LogOut, Menu as MenuIcon, ShieldAlert, X } from "lucide-react";
 import { Avatar, cn, YGHRLogo } from "@yghr/ui";
 import { logout } from "@/components/auth/logout-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
   { href: "/admin", label: "Vue d'ensemble", icon: LayoutDashboard, exact: true },
@@ -42,6 +43,7 @@ export function AdminShell({ admin, counts, children }: { admin: { firstName: st
         <div className="flex items-center gap-3 rounded-[12px] p-2">
           <Avatar name={`${admin.firstName} ${admin.lastName}`} size={34} />
           <div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold text-text">{admin.firstName} {admin.lastName}</div><div className="truncate text-xs text-muted">Équipe YGHR</div></div>
+          <ThemeToggle className="size-8" />
           <button onClick={logout} className="grid size-8 cursor-pointer place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-text" aria-label="Se déconnecter"><LogOut className="size-4" /></button>
         </div>
       </div>
@@ -60,6 +62,7 @@ export function AdminShell({ admin, counts, children }: { admin: { firstName: st
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-bg/85 px-4 backdrop-blur-md lg:hidden">
           <button className="grid size-9 cursor-pointer place-items-center rounded-lg hover:bg-surface-2" onClick={() => setDrawer(true)} aria-label="Ouvrir le menu"><MenuIcon className="size-5" /></button>
           <span className="font-display font-semibold">Console YGHR</span>
+          <ThemeToggle className="ml-auto" />
         </header>
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>

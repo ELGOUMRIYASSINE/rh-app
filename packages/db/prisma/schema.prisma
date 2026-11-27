@@ -859,6 +859,10 @@ model LeaveBalance {
   acquired   Decimal   @default(0) @db.Decimal(6, 2)
   taken      Decimal   @default(0) @db.Decimal(6, 2)
   adjusted   Decimal   @default(0) @db.Decimal(6, 2)
+  /// Annual allowance declared for this period (e.g. 18, 21 or 30 days). Replaces the policy accrual when set.
+  entitlement  Decimal?  @db.Decimal(6, 2)
+  declaredAt   DateTime?
+  declaredById String?
 
   @@unique([employeeId, leaveType, periodYear])
 }

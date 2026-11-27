@@ -6,8 +6,9 @@ import { LEAVE_TYPE_LABELS, LEAVE_TYPES, type LeaveType } from "@yghr/core";
 import { Button, Checkbox, cn, Field, Input, Modal, Segmented, Select, Textarea } from "@yghr/ui";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { EntitlementDeclare } from "./entitlement-declare";
 
-interface Preview { balance: { acquired: number; taken: number; pending: number; available: number } | null; days: number; method: string; warnings: string[] }
+interface Preview { balance: { acquired: number; taken: number; pending: number; available: number; entitlement: number | null; needsDeclaration: boolean; periodYear: number } | null; days: number; method: string; warnings: string[] }
 
 export function NewLeaveModal({ employees, selfEmployeeId, defaultEmployeeId, today, onClose, onCreated }: { employees: { id: string; name: string }[]; selfEmployeeId: string | null; defaultEmployeeId?: string | null; today: string; onClose: () => void; onCreated: () => void }) {
   const canPickOthers = employees.length > 0;
@@ -31,6 +32,8 @@ export function NewLeaveModal({ employees, selfEmployeeId, defaultEmployeeId, to
   });
   const p = preview.data;
   const unit = p?.method === "OUVRES" ? "ouvrés" : "ouvrables";
+  const remaining = p?.balance ? Math.max(0, Math.round((p.balance.available - p.balance.pending) * 100) / 100) : null;
+  const blocked = !!p?.balance && (p.balance.needsDeclaration || p.days > remaining!);
 
   async function submit() {
     if (!target) return toast.error("Choisissez le bénéficiaire.");
@@ -53,7 +56,7 @@ export function NewLeaveModal({ employees, selfEmployeeId, defaultEmployeeId, to
   }
 
   return (
-    <Modal open onOpenChange={(o) => !o && onClose()} icon={<CalendarPlus />} title="Nouvelle demande de congé" footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button onClick={submit} loading={saving} disabled={!target || !p?.days}>Soumettre la demande</Button></>}>
+    <Modal open onOpenChange={(o) => !o && onClose()} icon={<CalendarPlus />} title="Nouvelle demande de congé" footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button onClick={submit} loading={saving} disabled={!target || !p?.days || blocked}>Soumettre la demande</Button></>}>
       <div className="space-y-5">
         {canPickOthers && (
           <Field label="Bénéficiaire">
@@ -73,11 +76,13 @@ export function NewLeaveModal({ employees, selfEmployeeId, defaultEmployeeId, to
             {LEAVE_TYPES.map((t) => <option key={t} value={t}>{LEAVE_TYPE_LABELS[t]}</option>)}
           </Select>
         </Field>
-        {target && p?.balance && (
-          <div className={cn("flex items-start gap-3 rounded-[12px] border p-3.5 text-sm", p.days > p.balance.available - p.balance.pending ? "border-warning/40 bg-warning-100/50" : "border-brand-500/25 bg-brand-100/40")} aria-live="polite">
+        {target && p?.balance?.needsDeclaration && <EntitlementDeclare compact year={p.balance.periodYear} employeeId={target} forSelf={target === selfEmployeeId} onDone={() => void preview.refetch()} />}
+        {target && p?.balance && !p.balance.needsDeclaration && (
+          <div className={cn("flex items-start gap-3 rounded-[12px] border p-3.5 text-sm", p.days > remaining! ? "border-danger/40 bg-danger-100/50" : "border-brand-500/25 bg-brand-100/40")} aria-live="polite">
             <Wallet className="mt-0.5 size-4 shrink-0 text-brand-500" />
             <div>
-              Solde disponible : <b className="tabular">{Math.max(0, p.balance.available - p.balance.pending)} j {unit}</b> <span className="text-muted">(acquis {p.balance.acquired} · pris {p.balance.taken}{p.balance.pending ? ` · en attente ${p.balance.pending}` : ""})</span>, <b className="tabular">{p.days} j demandés</b>
+              Solde disponible : <b className="tabular">{remaining} j {unit}</b> <span className="text-muted">({p.balance.entitlement !== null ? `droit annuel ${p.balance.entitlement}` : `acquis ${p.balance.acquired}`} · pris {p.balance.taken}{p.balance.pending ? ` · en attente ${p.balance.pending}` : ""})</span>, <b className="tabular">{p.days} j demandés</b>
+              {p.days > remaining! && <div className="mt-1 font-medium text-danger">Solde insuffisant : la demande ne peut pas être envoyée.</div>}
             </div>
           </div>
         )}
